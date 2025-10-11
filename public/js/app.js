@@ -16,6 +16,7 @@ const convertBtn = document.getElementById('convertBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
+const progressCounter = document.getElementById('progressCounter');
 const resultsSection = document.getElementById('resultsSection');
 const downloadLinks = document.getElementById('downloadLinks');
 const fileInput = document.getElementById('fileInput');
@@ -475,7 +476,8 @@ async function convertFiles(startTime) {
             ? `Converting ${fileObj.name}... (${formatTime(estimatedRemainingTime)} remaining)`
             : `Converting ${fileObj.name}... (Finalizing)`;
         
-        updateProgress(fileProgress, timeText);
+        // Smooth progress animation
+        animateProgress(fileProgress, timeText);
         
         try {
             let result;
@@ -548,17 +550,50 @@ async function convertFile(publicId, format) {
 }
 
 function updateProgress(percentage, text) {
+    const counterValue = Math.round(percentage);
+    
     progressFill.style.width = `${percentage}%`;
-    progressText.textContent = text || `${Math.round(percentage)}%`;
+    progressText.textContent = text || `${counterValue}%`;
+    progressCounter.textContent = counterValue;
     
     // Add special styling for "Done" state
     if (text === 'Done!') {
         progressContainer.classList.add('done');
         progressFill.style.background = 'linear-gradient(90deg, #10B981, #059669)';
+        progressCounter.textContent = '100';
     } else {
         progressContainer.classList.remove('done');
         progressFill.style.background = 'linear-gradient(90deg, var(--primary-color), var(--primary-hover))';
     }
+}
+
+function animateProgress(targetPercentage, text) {
+    const currentPercentage = parseFloat(progressFill.style.width) || 0;
+    const targetValue = Math.round(targetPercentage);
+    const currentValue = Math.round(currentPercentage);
+    
+    // Animate counter from current to target
+    const duration = 500; // 500ms animation
+    const steps = Math.abs(targetValue - currentValue);
+    const stepDuration = duration / Math.max(steps, 1);
+    
+    let currentStep = 0;
+    const counter = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
+        const animatedValue = Math.round(currentValue + (targetValue - currentValue) * progress);
+        
+        progressCounter.textContent = animatedValue;
+        progressFill.style.width = `${animatedValue}%`;
+        progressText.textContent = text || `${animatedValue}%`;
+        
+        if (currentStep >= steps) {
+            clearInterval(counter);
+            progressCounter.textContent = targetValue;
+            progressFill.style.width = `${targetPercentage}%`;
+            progressText.textContent = text || `${targetValue}%`;
+        }
+    }, stepDuration);
 }
 
 function showResults(results) {
