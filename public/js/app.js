@@ -643,6 +643,9 @@ async function downloadFiles(results) {
     try {
         console.log(`Starting download for ${results.length} file(s)`);
         
+        // Add click animation class
+        convertBtn.classList.add('clicked');
+        
         // Show download processing state (minimal)
         convertBtn.disabled = true;
         convertBtn.querySelector('.btn-text').textContent = 'Downloading...';
@@ -747,6 +750,9 @@ async function downloadFiles(results) {
         convertBtn.disabled = false;
         convertBtn.querySelector('.btn-text').textContent = 'Download All';
         // No loading spinner to hide
+    } finally {
+        // Remove click animation class
+        convertBtn.classList.remove('clicked');
     }
 }
 
