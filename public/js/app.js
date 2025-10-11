@@ -646,9 +646,8 @@ async function downloadFiles(results) {
         // Add click animation class
         convertBtn.classList.add('clicked');
         
-        // Show download processing state (minimal)
+        // Disable button during download (no text change)
         convertBtn.disabled = true;
-        convertBtn.querySelector('.btn-text').textContent = 'Downloading...';
         // Hide progress bar during download
         progressContainer.style.display = 'none';
         
@@ -701,7 +700,7 @@ async function downloadFiles(results) {
         link.download = filename;
         link.style.display = 'none';
         
-        // Track download completion with multiple methods
+        // Track download completion
         let downloadStarted = false;
         
         link.addEventListener('click', () => {
@@ -710,8 +709,6 @@ async function downloadFiles(results) {
             setTimeout(() => {
                 if (downloadStarted) {
                     convertBtn.disabled = false;
-                    convertBtn.querySelector('.btn-text').textContent = 'Download All';
-                    // No loading spinner to hide
                 }
             }, 200); // Small delay to ensure download starts
         });
@@ -720,8 +717,6 @@ async function downloadFiles(results) {
         setTimeout(() => {
             if (downloadStarted) {
                 convertBtn.disabled = false;
-                convertBtn.querySelector('.btn-text').textContent = 'Download All';
-                // No loading spinner to hide
             }
         }, 1000); // Maximum 1 second processing state
         
@@ -748,8 +743,6 @@ async function downloadFiles(results) {
         
         // Reset button state on error
         convertBtn.disabled = false;
-        convertBtn.querySelector('.btn-text').textContent = 'Download All';
-        // No loading spinner to hide
     } finally {
         // Remove click animation class
         convertBtn.classList.remove('clicked');

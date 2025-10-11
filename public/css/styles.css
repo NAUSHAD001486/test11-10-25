@@ -455,18 +455,13 @@ body {
     background: #111827;
 }
 
-/* Download button click animation */
+/* Download button click animation - scale only */
 .convert-btn {
-    transition: transform 200ms ease, background-color 200ms ease;
+    transition: transform 200ms ease;
 }
 
 .convert-btn.clicked {
     transform: scale(0.95);
-    background-color: #8E4AFF;
-}
-
-.convert-btn.download.clicked {
-    background-color: #8E4AFF;
 }
 
 .btn-loading {

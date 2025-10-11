@@ -519,6 +519,7 @@ app.post('/api/download', async (req, res) => {
       
       // Stream the file to response
       response.data.pipe(res);
+      console.log('Response sent at', Date.now());
       
     } else {
       // Multiple files - create ZIP bundle
@@ -544,6 +545,7 @@ app.post('/api/download', async (req, res) => {
       
       // Pipe archive to response
       archive.pipe(res);
+      console.log('ZIP response sent at', Date.now());
       
       // Add each file to the ZIP
       for (let i = 0; i < files.length; i++) {
