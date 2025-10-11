@@ -258,7 +258,7 @@ function createFileItem(fileObj) {
     fileItem.dataset.fileId = fileObj.id;
     
     fileItem.innerHTML = `
-        <img src="${fileObj.preview}" alt="${fileObj.name}" class="file-preview">
+        <img src="/icons/image-icon.svg" alt="${fileObj.name}" class="file-preview">
         <div class="file-info">
             <div class="file-name">${fileObj.name}</div>
             <div class="file-size">${formatFileSize(fileObj.size)}</div>

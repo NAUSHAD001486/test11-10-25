@@ -1,0 +1,17 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="24" cy="24" r="24" fill="#F3F4F6"/>
+  
+  <!-- Image frame -->
+  <rect x="8" y="10" width="32" height="24" rx="2" fill="white" stroke="#D1D5DB" stroke-width="1.5"/>
+  
+  <!-- Image content - mountain landscape -->
+  <path d="M12 28L16 22L20 26L24 18L28 24L32 20L36 28V32H12V28Z" fill="#7C3AED" opacity="0.7"/>
+  
+  <!-- Image corner fold -->
+  <path d="M32 10L36 14L32 18V10Z" fill="#E5E7EB"/>
+  <path d="M32 10L36 14L32 18" stroke="#D1D5DB" stroke-width="1" fill="none"/>
+  
+  <!-- File extension -->
+  <text x="24" y="40" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="600" fill="#6B7280">IMG</text>
+</svg>
