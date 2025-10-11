@@ -425,8 +425,11 @@ async function handleConvert() {
     progressContainer.style.display = 'block';
     resultsSection.style.display = 'none';
     
+    // Start time tracking
+    const startTime = Date.now();
+    
     try {
-        const results = await convertFiles();
+        const results = await convertFiles(startTime);
         showResults(results);
         showToast('Conversion completed successfully!', 'success');
     } catch (error) {
@@ -436,19 +439,43 @@ async function handleConvert() {
         convertBtn.disabled = false;
         convertBtn.querySelector('.btn-text').style.display = 'block';
         convertBtn.querySelector('.btn-loading').style.display = 'none';
-        progressContainer.style.display = 'none';
+        
+        // Show "Done" message before hiding
+        updateProgress(100, 'Done!');
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 1500);
     }
 }
 
-async function convertFiles() {
+async function convertFiles(startTime) {
     const results = [];
     const totalFiles = uploadedFiles.length;
     
     for (let i = 0; i < uploadedFiles.length; i++) {
         const fileObj = uploadedFiles[i];
-        const progress = ((i + 1) / totalFiles) * 100;
+        const fileProgress = ((i + 1) / totalFiles) * 100;
         
-        updateProgress(progress, `Converting ${fileObj.name}...`);
+        // Calculate elapsed time and estimated remaining time
+        const elapsedTime = Date.now() - startTime;
+        const avgTimePerFile = elapsedTime / (i + 1);
+        const remainingFiles = totalFiles - (i + 1);
+        const estimatedRemainingTime = avgTimePerFile * remainingFiles;
+        
+        // Format time display
+        const formatTime = (ms) => {
+            const seconds = Math.ceil(ms / 1000);
+            if (seconds < 60) return `${seconds}s`;
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        };
+        
+        const timeText = remainingFiles > 0 
+            ? `Converting ${fileObj.name}... (${formatTime(estimatedRemainingTime)} remaining)`
+            : `Converting ${fileObj.name}... (Finalizing)`;
+        
+        updateProgress(fileProgress, timeText);
         
         try {
             let result;
@@ -523,6 +550,15 @@ async function convertFile(publicId, format) {
 function updateProgress(percentage, text) {
     progressFill.style.width = `${percentage}%`;
     progressText.textContent = text || `${Math.round(percentage)}%`;
+    
+    // Add special styling for "Done" state
+    if (text === 'Done!') {
+        progressContainer.classList.add('done');
+        progressFill.style.background = 'linear-gradient(90deg, #10B981, #059669)';
+    } else {
+        progressContainer.classList.remove('done');
+        progressFill.style.background = 'linear-gradient(90deg, var(--primary-color), var(--primary-hover))';
+    }
 }
 
 function showResults(results) {
