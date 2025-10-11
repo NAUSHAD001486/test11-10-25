@@ -653,11 +653,11 @@ async function downloadFiles(results) {
         // Hide progress bar during download
         progressContainer.style.display = 'none';
         
-        // Show loading spinner for exactly 2 seconds
+        // Show loading spinner for exactly 1 second
         setTimeout(() => {
             convertBtn.querySelector('.btn-text').style.display = 'block';
             convertBtn.querySelector('.btn-loading').style.display = 'none';
-        }, 2000);
+        }, 1000);
         
         // Prepare files data for backend
         const files = results.map(result => ({
