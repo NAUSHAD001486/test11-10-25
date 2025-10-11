@@ -559,11 +559,11 @@ function updateProgress(percentage, text) {
     // Add special styling for "Done" state
     if (text === 'Done!') {
         progressContainer.classList.add('done');
-        progressFill.style.background = 'linear-gradient(90deg, #10B981, #059669)';
+        progressFill.style.background = 'linear-gradient(90deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.7))';
         progressCounter.textContent = '100';
     } else {
         progressContainer.classList.remove('done');
-        progressFill.style.background = 'linear-gradient(90deg, var(--primary-color), var(--primary-hover))';
+        progressFill.style.background = 'linear-gradient(90deg, rgba(124, 58, 237, 0.7), rgba(109, 40, 217, 0.7))';
     }
 }
 
