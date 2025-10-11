@@ -643,10 +643,11 @@ async function downloadFiles(results) {
     try {
         console.log(`Starting download for ${results.length} file(s)`);
         
-        // Show download processing state
+        // Show download processing state (minimal)
         convertBtn.disabled = true;
         convertBtn.querySelector('.btn-text').textContent = 'Downloading...';
-        convertBtn.querySelector('.btn-loading').style.display = 'flex';
+        // Hide progress bar during download
+        progressContainer.style.display = 'none';
         
         // Prepare files data for backend
         const files = results.map(result => ({
@@ -707,7 +708,7 @@ async function downloadFiles(results) {
                 if (downloadStarted) {
                     convertBtn.disabled = false;
                     convertBtn.querySelector('.btn-text').textContent = 'Download All';
-                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                    // No loading spinner to hide
                 }
             }, 200); // Small delay to ensure download starts
         });
@@ -717,7 +718,7 @@ async function downloadFiles(results) {
             if (downloadStarted) {
                 convertBtn.disabled = false;
                 convertBtn.querySelector('.btn-text').textContent = 'Download All';
-                convertBtn.querySelector('.btn-loading').style.display = 'none';
+                // No loading spinner to hide
             }
         }, 1000); // Maximum 1 second processing state
         
@@ -745,7 +746,7 @@ async function downloadFiles(results) {
         // Reset button state on error
         convertBtn.disabled = false;
         convertBtn.querySelector('.btn-text').textContent = 'Download All';
-        convertBtn.querySelector('.btn-loading').style.display = 'none';
+        // No loading spinner to hide
     }
 }
 
