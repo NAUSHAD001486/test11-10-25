@@ -252,7 +252,7 @@ body {
 .file-item {
     display: flex;
     align-items: center;
-    padding: 13px 20px;
+    padding: 11px 20px;
     border-bottom: 1px solid var(--border-color);
     transition: var(--transition);
 }
@@ -779,7 +779,7 @@ body {
     }
     
     .file-item {
-        padding: 10px 16px;
+        padding: 8px 16px;
     }
     
     .file-preview {
@@ -838,7 +838,7 @@ body {
     }
     
     .file-item {
-        padding: 8px 12px;
+        padding: 7px 12px;
     }
     
     .file-preview {
