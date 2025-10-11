@@ -646,8 +646,10 @@ async function downloadFiles(results) {
         // Add click animation class
         convertBtn.classList.add('clicked');
         
-        // Disable button during download (no text change)
+        // Disable button during download (no text change, no loading state)
         convertBtn.disabled = true;
+        convertBtn.querySelector('.btn-text').style.display = 'block';
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
         // Hide progress bar during download
         progressContainer.style.display = 'none';
         
@@ -709,6 +711,8 @@ async function downloadFiles(results) {
             setTimeout(() => {
                 if (downloadStarted) {
                     convertBtn.disabled = false;
+                    convertBtn.querySelector('.btn-text').style.display = 'block';
+                    convertBtn.querySelector('.btn-loading').style.display = 'none';
                 }
             }, 80); // Reduced delay to ensure download starts
         });
@@ -717,6 +721,8 @@ async function downloadFiles(results) {
         setTimeout(() => {
             if (downloadStarted) {
                 convertBtn.disabled = false;
+                convertBtn.querySelector('.btn-text').style.display = 'block';
+                convertBtn.querySelector('.btn-loading').style.display = 'none';
             }
         }, 400); // Reduced maximum processing state
         
@@ -743,6 +749,8 @@ async function downloadFiles(results) {
         
         // Reset button state on error
         convertBtn.disabled = false;
+        convertBtn.querySelector('.btn-text').style.display = 'block';
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
     } finally {
         // Remove click animation class
         convertBtn.classList.remove('clicked');
