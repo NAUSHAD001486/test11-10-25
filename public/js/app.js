@@ -710,7 +710,7 @@ async function downloadFiles(results) {
                 if (downloadStarted) {
                     convertBtn.disabled = false;
                 }
-            }, 200); // Small delay to ensure download starts
+            }, 80); // Reduced delay to ensure download starts
         });
         
         // Fallback: Reset button after a short timeout regardless
@@ -718,7 +718,7 @@ async function downloadFiles(results) {
             if (downloadStarted) {
                 convertBtn.disabled = false;
             }
-        }, 1000); // Maximum 1 second processing state
+        }, 400); // Reduced maximum processing state
         
         // Add to DOM, click, and remove immediately
         document.body.appendChild(link);
@@ -728,7 +728,7 @@ async function downloadFiles(results) {
         // Clean up the blob URL quickly
         setTimeout(() => {
             URL.revokeObjectURL(blobUrl);
-        }, 100);
+        }, 40);
         
         // Show success message briefly
         if (results.length === 1) {
