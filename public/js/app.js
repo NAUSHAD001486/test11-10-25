@@ -646,12 +646,18 @@ async function downloadFiles(results) {
         // Add click animation class
         convertBtn.classList.add('clicked');
         
-        // Disable button during download (no text change, no loading state)
+        // Disable button during download and show loading spinner for 2 seconds
         convertBtn.disabled = true;
-        convertBtn.querySelector('.btn-text').style.display = 'block';
-        convertBtn.querySelector('.btn-loading').style.display = 'none';
+        convertBtn.querySelector('.btn-text').style.display = 'none';
+        convertBtn.querySelector('.btn-loading').style.display = 'flex';
         // Hide progress bar during download
         progressContainer.style.display = 'none';
+        
+        // Show loading spinner for exactly 2 seconds
+        setTimeout(() => {
+            convertBtn.querySelector('.btn-text').style.display = 'block';
+            convertBtn.querySelector('.btn-loading').style.display = 'none';
+        }, 2000);
         
         // Prepare files data for backend
         const files = results.map(result => ({
@@ -711,8 +717,7 @@ async function downloadFiles(results) {
             setTimeout(() => {
                 if (downloadStarted) {
                     convertBtn.disabled = false;
-                    convertBtn.querySelector('.btn-text').style.display = 'block';
-                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                    // Don't change text/spinner here - let 2-second timeout handle it
                 }
             }, 80); // Reduced delay to ensure download starts
         });
@@ -721,8 +726,7 @@ async function downloadFiles(results) {
         setTimeout(() => {
             if (downloadStarted) {
                 convertBtn.disabled = false;
-                convertBtn.querySelector('.btn-text').style.display = 'block';
-                convertBtn.querySelector('.btn-loading').style.display = 'none';
+                // Don't change text/spinner here - let 2-second timeout handle it
             }
         }, 400); // Reduced maximum processing state
         
@@ -747,10 +751,8 @@ async function downloadFiles(results) {
         console.error('Download error:', error);
         showToast(`Download failed: ${error.message}`, 'error');
         
-        // Reset button state on error
+        // Reset button state on error (spinner will be hidden by 2-second timeout)
         convertBtn.disabled = false;
-        convertBtn.querySelector('.btn-text').style.display = 'block';
-        convertBtn.querySelector('.btn-loading').style.display = 'none';
     } finally {
         // Remove click animation class
         convertBtn.classList.remove('clicked');
