@@ -313,6 +313,7 @@ function updateUI() {
     const hasFiles = uploadedFiles.length > 0;
     
     outputSettings.classList.toggle('show', hasFiles);
+    convertBtn.style.display = hasFiles ? 'block' : 'none';
     convertBtn.disabled = !hasFiles || isConverting;
     
     if (hasFiles) {
