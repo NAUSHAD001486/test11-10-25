@@ -9,6 +9,7 @@ const cron = require('node-cron');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
+const archiver = require('archiver');
 require('dotenv').config({ path: './config.env' });
 
 // Usage tracking for rate limiting
@@ -341,17 +342,131 @@ app.post('/api/convert', async (req, res) => {
   }
 });
 
-// Download converted file
-app.get('/api/download/:publicId/:format', async (req, res) => {
+// Download converted files (single file or ZIP bundle)
+app.post('/api/download', async (req, res) => {
   try {
-    const { publicId, format } = req.params;
-    const convertedUrl = await convertFile(publicId, 'webp', format);
+    const { files } = req.body;
     
-    res.redirect(convertedUrl);
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files to download' });
+    }
+    
+    console.log(`Download request for ${files.length} file(s)`);
+    
+    if (files.length === 1) {
+      // Single file download
+      const file = files[0];
+      const { publicId, format, originalName } = file;
+      
+      console.log(`Downloading single file: ${originalName} (${format})`);
+      
+      // Get the converted URL
+      const convertedUrl = await convertFile(publicId, 'webp', format);
+      
+      // Fetch the file from Cloudinary
+      const response = await axios({
+        method: 'GET',
+        url: convertedUrl,
+        responseType: 'stream',
+        timeout: 30000
+      });
+      
+      // Set appropriate headers for single file download
+      const filename = `${originalName || 'converted'}.${format.toLowerCase()}`;
+      const mimeType = getMimeType(format);
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', response.headers['content-length']);
+      res.setHeader('X-File-Count', '1');
+      
+      // Stream the file to response
+      response.data.pipe(res);
+      
+    } else {
+      // Multiple files - create ZIP bundle
+      console.log(`Creating ZIP bundle for ${files.length} files`);
+      
+      // Set headers for ZIP download
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="converted_files.zip"');
+      res.setHeader('X-File-Count', files.length.toString());
+      
+      // Create ZIP archive
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Maximum compression
+      });
+      
+      // Handle archive events
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to create ZIP archive' });
+        }
+      });
+      
+      // Pipe archive to response
+      archive.pipe(res);
+      
+      // Add each file to the ZIP
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const { publicId, format, originalName } = file;
+        
+        try {
+          console.log(`Adding to ZIP: ${originalName} (${format})`);
+          
+          // Get the converted URL
+          const convertedUrl = await convertFile(publicId, 'webp', format);
+          
+          // Fetch the file from Cloudinary
+          const fileResponse = await axios({
+            method: 'GET',
+            url: convertedUrl,
+            responseType: 'stream',
+            timeout: 30000
+          });
+          
+          // Create filename for ZIP entry
+          const zipFilename = `${originalName || `file_${i + 1}`}.${format.toLowerCase()}`;
+          
+          // Add file to archive
+          archive.append(fileResponse.data, { name: zipFilename });
+          
+        } catch (fileError) {
+          console.error(`Error adding file ${originalName} to ZIP:`, fileError);
+          // Continue with other files
+        }
+      }
+      
+      // Finalize the archive
+      await archive.finalize();
+    }
+    
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Download error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Download failed' });
+    }
   }
 });
+
+// Helper function to get MIME type based on format
+function getMimeType(format) {
+  const mimeTypes = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'bmp': 'image/bmp',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'tiff': 'image/tiff',
+    'ico': 'image/x-icon'
+  };
+  
+  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
+}
 
 // Serve main page
 app.get('/', (req, res) => {

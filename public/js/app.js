@@ -496,7 +496,8 @@ async function convertFiles(startTime) {
             results.push({
                 originalName: result.originalName,
                 convertedUrl: convertedUrl,
-                format: selectedFormat
+                format: selectedFormat,
+                publicId: result.publicId
             });
         } catch (error) {
             console.error('Error converting file:', error);
@@ -600,16 +601,58 @@ function showResults(results) {
     convertBtn.onclick = () => downloadAllFiles(results);
 }
 
-async function downloadFile(url, filename) {
+async function downloadFiles(results) {
     try {
-        // Fetch the file from Cloudinary
-        const response = await fetch(url);
+        console.log(`Starting download for ${results.length} file(s)`);
+        
+        // Prepare files data for backend
+        const files = results.map(result => ({
+            publicId: result.publicId,
+            format: result.format,
+            originalName: result.originalName
+        }));
+        
+        // Show loading state
+        showToast('Preparing download...', 'info');
+        
+        // Send download request to backend
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ files })
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch file');
+            const error = await response.json();
+            throw new Error(error.error || 'Download failed');
         }
         
         // Get the blob data
         const blob = await response.blob();
+        
+        if (!blob || blob.size === 0) {
+            throw new Error('Downloaded file is empty');
+        }
+        
+        // Determine filename based on content type and file count
+        const contentType = response.headers.get('content-type');
+        const fileCount = response.headers.get('x-file-count');
+        
+        let filename;
+        if (contentType === 'application/zip') {
+            filename = 'converted_files.zip';
+        } else if (fileCount === '1') {
+            // Single file - use original name with format
+            const originalName = results[0].originalName || 'converted';
+            const format = results[0].format || 'png';
+            filename = `${originalName}.${format.toLowerCase()}`;
+        } else {
+            filename = 'converted_files.zip';
+        }
+        
+        console.log(`Downloading: ${filename} (${blob.size} bytes)`);
         
         // Create object URL from blob
         const blobUrl = URL.createObjectURL(blob);
@@ -628,31 +671,23 @@ async function downloadFile(url, filename) {
         // Clean up the blob URL
         setTimeout(() => {
             URL.revokeObjectURL(blobUrl);
-        }, 1000);
+        }, 2000);
+        
+        // Show success message
+        if (fileCount === '1') {
+            showToast('File downloaded successfully!', 'success');
+        } else {
+            showToast(`ZIP file with ${fileCount} files downloaded!`, 'success');
+        }
         
     } catch (error) {
         console.error('Download error:', error);
-        // Fallback to direct link download
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        showToast(`Download failed: ${error.message}`, 'error');
     }
 }
 
 async function downloadAllFiles(results) {
-    if (results.length === 1) {
-        await downloadFile(results[0].convertedUrl, results[0].originalName);
-    } else {
-        // For multiple files, download each file individually with delay
-        for (let i = 0; i < results.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, i * 500)); // Stagger downloads
-            await downloadFile(results[i].convertedUrl, results[i].originalName);
-        }
-    }
+    await downloadFiles(results);
 }
 
 // Toast notifications
