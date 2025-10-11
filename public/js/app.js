@@ -612,10 +612,7 @@ async function downloadFiles(results) {
             originalName: result.originalName
         }));
         
-        // Show loading state
-        showToast('Preparing download...', 'info');
-        
-        // Send download request to backend
+        // Send download request to backend immediately
         const response = await fetch('/api/download', {
             method: 'POST',
             headers: {
@@ -663,21 +660,21 @@ async function downloadFiles(results) {
         link.download = filename;
         link.style.display = 'none';
         
-        // Add to DOM, click, and remove
+        // Add to DOM, click, and remove immediately
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Clean up the blob URL
+        // Clean up the blob URL quickly
         setTimeout(() => {
             URL.revokeObjectURL(blobUrl);
-        }, 2000);
+        }, 100);
         
-        // Show success message
+        // Show success message briefly
         if (fileCount === '1') {
-            showToast('File downloaded successfully!', 'success');
+            showToast('Downloaded!', 'success');
         } else {
-            showToast(`ZIP file with ${fileCount} files downloaded!`, 'success');
+            showToast(`ZIP downloaded!`, 'success');
         }
         
     } catch (error) {
@@ -698,10 +695,10 @@ function showToast(message, type = 'info') {
     messageElement.textContent = message;
     toast.classList.add('show');
     
-    // Auto hide after 5 seconds
+    // Auto hide after 2 seconds for faster UI
     setTimeout(() => {
         hideToast(toast);
-    }, 5000);
+    }, 2000);
 }
 
 function hideToast(toast) {

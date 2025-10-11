@@ -368,7 +368,7 @@ app.post('/api/download', async (req, res) => {
         method: 'GET',
         url: convertedUrl,
         responseType: 'stream',
-        timeout: 30000
+        timeout: 10000 // Reduced timeout for faster response
       });
       
       // Set appropriate headers for single file download
@@ -424,7 +424,7 @@ app.post('/api/download', async (req, res) => {
             method: 'GET',
             url: convertedUrl,
             responseType: 'stream',
-            timeout: 30000
+            timeout: 10000 // Reduced timeout for faster response
           });
           
           // Create filename for ZIP entry
