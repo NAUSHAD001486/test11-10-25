@@ -448,11 +448,11 @@ body {
 }
 
 .convert-btn.download {
-    background: #059669;
+    background: #EE4B2B;
 }
 
 .convert-btn.download:hover {
-    background: #047857;
+    background: #DC2626;
 }
 
 .btn-loading {
