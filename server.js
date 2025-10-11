@@ -496,8 +496,20 @@ app.post('/api/download', async (req, res) => {
         timeout: 10000 // Reduced timeout for faster response
       });
       
-      // Set appropriate headers for single file download
-      const filename = `${originalName || 'converted'}.${format.toLowerCase()}`;
+      // Generate proper filename by stripping original extension and adding new one
+      let baseName = 'converted';
+      if (originalName) {
+        try {
+          const ext = path.extname(originalName);
+          baseName = ext ? path.basename(originalName, ext) : path.basename(originalName);
+          // Handle edge case where basename might be empty
+          if (!baseName) baseName = 'converted';
+        } catch (error) {
+          console.warn('Error processing filename:', error.message);
+          baseName = 'converted';
+        }
+      }
+      const filename = `${baseName}.${format.toLowerCase()}`;
       const mimeType = getMimeType(format);
       
       res.setHeader('Content-Type', mimeType);
@@ -552,8 +564,20 @@ app.post('/api/download', async (req, res) => {
             timeout: 10000 // Reduced timeout for faster response
           });
           
-          // Create filename for ZIP entry
-          const zipFilename = `${originalName || `file_${i + 1}`}.${format.toLowerCase()}`;
+          // Create filename for ZIP entry by stripping original extension
+          let baseName = `file_${i + 1}`;
+          if (originalName) {
+            try {
+              const ext = path.extname(originalName);
+              baseName = ext ? path.basename(originalName, ext) : path.basename(originalName);
+              // Handle edge case where basename might be empty
+              if (!baseName) baseName = `file_${i + 1}`;
+            } catch (error) {
+              console.warn('Error processing ZIP filename:', error.message);
+              baseName = `file_${i + 1}`;
+            }
+          }
+          const zipFilename = `${baseName}.${format.toLowerCase()}`;
           
           // Add file to archive
           archive.append(fileResponse.data, { name: zipFilename });

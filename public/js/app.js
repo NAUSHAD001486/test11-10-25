@@ -671,20 +671,14 @@ async function downloadFiles(results) {
             throw new Error('Downloaded file is empty');
         }
         
-        // Determine filename based on content type and file count
-        const contentType = response.headers.get('content-type');
-        const fileCount = response.headers.get('x-file-count');
-        
-        let filename;
-        if (contentType === 'application/zip') {
-            filename = 'converted_files.zip';
-        } else if (fileCount === '1') {
-            // Single file - use original name with format
-            const originalName = results[0].originalName || 'converted';
-            const format = results[0].format || 'png';
-            filename = `${originalName}.${format.toLowerCase()}`;
-        } else {
-            filename = 'converted_files.zip';
+        // Get filename from Content-Disposition header (set by backend)
+        let filename = 'converted_files.zip'; // Default fallback
+        const contentDisposition = response.headers.get('content-disposition');
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
         }
         
         console.log(`Downloading: ${filename} (${blob.size} bytes)`);
