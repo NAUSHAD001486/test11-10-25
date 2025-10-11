@@ -600,27 +600,58 @@ function showResults(results) {
     convertBtn.onclick = () => downloadAllFiles(results);
 }
 
-function downloadFile(url, filename) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+async function downloadFile(url, filename) {
+    try {
+        // Fetch the file from Cloudinary
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Failed to fetch file');
+        }
+        
+        // Get the blob data
+        const blob = await response.blob();
+        
+        // Create object URL from blob
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        
+        // Add to DOM, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the blob URL
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        // Fallback to direct link download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
-function downloadAllFiles(results) {
+async function downloadAllFiles(results) {
     if (results.length === 1) {
-        downloadFile(results[0].convertedUrl, results[0].originalName);
+        await downloadFile(results[0].convertedUrl, results[0].originalName);
     } else {
-        // For multiple files, we could create a ZIP
-        // For now, download each file individually
-        results.forEach((result, index) => {
-            setTimeout(() => {
-                downloadFile(result.convertedUrl, result.originalName);
-            }, index * 500); // Stagger downloads
-        });
+        // For multiple files, download each file individually with delay
+        for (let i = 0; i < results.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, i * 500)); // Stagger downloads
+            await downloadFile(results[i].convertedUrl, results[i].originalName);
+        }
     }
 }
 
