@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Convert WebP to PNG and other image formats for free. The best and most advanced way to convert WebP to PNG with Love U Convert.">
+    <meta name="keywords" content="webp to png, image converter, webp converter, png converter, free converter, online converter">
+    <meta name="author" content="Love U Convert">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Love U Convert - WebP to PNG Converter">
+    <meta property="og:description" content="Convert WebP to PNG and other image formats for free. Fast, secure, and easy to use.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourdomain.com">
+    <meta property="og:image" content="https://yourdomain.com/og-image.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Love U Convert - WebP to PNG Converter">
+    <meta name="twitter:description" content="Convert WebP to PNG and other image formats for free. Fast, secure, and easy to use.">
+    <meta name="twitter:image" content="https://yourdomain.com/og-image.png">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#7C3AED">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Love U Convert">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    
+    <title>Love U Convert - WebP to PNG Converter | Free Online Image Converter</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/css/styles.css" as="style">
+    <link rel="preload" href="/js/app.js" as="script">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="header" class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-text">Love U convert</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Title Section -->
+            <div class="title-section">
+                <h1 class="main-title">WebP to PNG</h1>
+                <p class="subtitle">The best and most advanced way to convert WebP to PNG for free.</p>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-box" id="uploadBox">
+                    <div class="upload-content">
+                        <button class="select-files-btn" id="selectFilesBtn">
+                            <span>Select files</span>
+                            <svg class="dropdown-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <p class="drag-text">Or drag and drop files here</p>
+                    </div>
+                    
+                    <!-- File Source Dropdown -->
+                    <div class="file-source-dropdown" id="fileSourceDropdown">
+                        <div class="dropdown-item" data-source="device">
+                            <span class="dropdown-icon">📁</span>
+                            <span>From Device</span>
+                        </div>
+                        <div class="dropdown-item" data-source="google-drive">
+                            <span class="dropdown-icon">☁️</span>
+                            <span>Google Drive</span>
+                        </div>
+                        <div class="dropdown-item" data-source="onedrive">
+                            <span class="dropdown-icon">☁️</span>
+                            <span>OneDrive</span>
+                        </div>
+                        <div class="dropdown-item" data-source="url">
+                            <span class="dropdown-icon">🔗</span>
+                            <span>From URL</span>
+                        </div>
+                        <div class="dropdown-item" data-source="dropbox">
+                            <span class="dropdown-icon">☁️</span>
+                            <span>Dropbox</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File List -->
+                <div class="file-list-container" id="fileListContainer">
+                    <!-- Files will be dynamically added here -->
+                </div>
+
+                <!-- Output Settings -->
+                <div class="output-settings" id="outputSettings">
+                    <div class="output-label">Output:</div>
+                    <div class="format-dropdown">
+                        <button class="format-btn" id="formatBtn">
+                            <span id="selectedFormat">PNG</span>
+                            <svg class="dropdown-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="format-options" id="formatOptions">
+                            <div class="format-option" data-format="PNG">PNG</div>
+                            <div class="format-option" data-format="BMP">BMP</div>
+                            <div class="format-option" data-format="EPS">EPS</div>
+                            <div class="format-option" data-format="GIF">GIF</div>
+                            <div class="format-option" data-format="ICO">ICO</div>
+                            <div class="format-option" data-format="JPEG">JPEG</div>
+                            <div class="format-option" data-format="JPG">JPG</div>
+                            <div class="format-option" data-format="ODD">ODD</div>
+                            <div class="format-option" data-format="SVG">SVG</div>
+                            <div class="format-option" data-format="PSD">PSD</div>
+                            <div class="format-option" data-format="TGA">TGA</div>
+                            <div class="format-option" data-format="TIFF">TIFF</div>
+                            <div class="format-option" data-format="WebP">WebP</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Convert Button -->
+                <button class="convert-btn" id="convertBtn" disabled>
+                    <span class="btn-text">Convert</span>
+                    <div class="btn-loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <span>Converting...</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h3>Conversion Complete!</h3>
+                <div class="download-links" id="downloadLinks">
+                    <!-- Download links will be added here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- URL Input Modal -->
+    <div class="modal" id="urlModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enter File URL</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="url" id="urlInput" placeholder="https://example.com/image.webp" required>
+                <button class="modal-btn" id="urlSubmit">Upload from URL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div class="toast" id="errorToast">
+        <div class="toast-content">
+            <span class="toast-icon">⚠️</span>
+            <span class="toast-message" id="toastMessage"></span>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast success" id="successToast">
+        <div class="toast-content">
+            <span class="toast-icon">✅</span>
+            <span class="toast-message" id="successMessage"></span>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

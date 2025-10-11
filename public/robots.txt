@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Disallow uploads directory
+Disallow: /uploads/
+Disallow: /api/
+
+# Allow all other content
+Allow: /css/
+Allow: /js/
+Allow: /icons/
+Allow: /manifest.json
