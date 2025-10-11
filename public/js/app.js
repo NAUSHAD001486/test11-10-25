@@ -17,8 +17,6 @@ const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 const progressCounter = document.getElementById('progressCounter');
-const resultsSection = document.getElementById('resultsSection');
-const downloadLinks = document.getElementById('downloadLinks');
 const fileInput = document.getElementById('fileInput');
 const urlModal = document.getElementById('urlModal');
 const urlInput = document.getElementById('urlInput');
@@ -424,7 +422,6 @@ async function handleConvert() {
     convertBtn.querySelector('.btn-loading').style.display = 'flex';
     
     progressContainer.style.display = 'block';
-    resultsSection.style.display = 'none';
     
     // Start time tracking
     const startTime = Date.now();
@@ -597,31 +594,7 @@ function animateProgress(targetPercentage, text) {
 }
 
 function showResults(results) {
-    downloadLinks.innerHTML = '';
-    
-    results.forEach(result => {
-        const downloadLink = document.createElement('div');
-        downloadLink.className = 'download-link';
-        
-        downloadLink.innerHTML = `
-            <div class="download-info">
-                <img src="${result.convertedUrl}" alt="${result.originalName}" class="download-icon">
-                <div class="download-details">
-                    <div class="download-name">${result.originalName}</div>
-                    <div class="download-format">${result.format}</div>
-                </div>
-            </div>
-            <button class="download-btn" onclick="downloadFile('${result.convertedUrl}', '${result.originalName}')">
-                Download
-            </button>
-        `;
-        
-        downloadLinks.appendChild(downloadLink);
-    });
-    
-    resultsSection.style.display = 'block';
-    
-    // Update convert button
+    // Update convert button to "Download All"
     convertBtn.querySelector('.btn-text').textContent = 'Download All';
     convertBtn.classList.add('download');
     convertBtn.onclick = () => downloadAllFiles(results);
