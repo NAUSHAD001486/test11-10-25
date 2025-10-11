@@ -11,6 +11,10 @@ const path = require('path');
 const axios = require('axios');
 require('dotenv').config({ path: './config.env' });
 
+// Usage tracking for rate limiting
+const usageTracker = new Map();
+const DAILY_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -33,13 +37,53 @@ app.use(helmet({
   }
 }));
 
-// Rate limiting
+// Rate limiting - Allow 2GB usage per IP per day
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 1000, // Allow 1000 requests per day (should be enough for 2GB)
+  message: {
+    error: 'Daily usage limit reached',
+    message: 'You have reached your daily conversion limit. Please try again tomorrow.',
+    limit: '2GB per day',
+    resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for static files and health checks
+    return req.path === '/health' || req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/icons/');
+  }
 });
 app.use(limiter);
+
+// Custom usage tracking middleware
+const trackUsage = (req, res, next) => {
+  const clientIP = req.ip || req.connection.remoteAddress;
+  const today = new Date().toDateString();
+  const key = `${clientIP}-${today}`;
+  
+  // Initialize usage for this IP and day
+  if (!usageTracker.has(key)) {
+    usageTracker.set(key, { bytes: 0, lastReset: Date.now() });
+  }
+  
+  const usage = usageTracker.get(key);
+  
+  // Check if daily limit is reached
+  if (usage.bytes >= DAILY_LIMIT) {
+    return res.status(429).json({
+      error: 'Daily usage limit reached',
+      message: 'You have reached your daily conversion limit of 2GB. Please try again tomorrow.',
+      limit: '2GB per day',
+      used: `${(usage.bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`,
+      resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
+  }
+  
+  // Store usage info in request for later use
+  req.usageTracker = { key, usage };
+  next();
+};
 
 // CORS configuration
 app.use(cors({
@@ -171,8 +215,27 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Usage check endpoint
+app.get('/api/usage', (req, res) => {
+  const clientIP = req.ip || req.connection.remoteAddress;
+  const today = new Date().toDateString();
+  const key = `${clientIP}-${today}`;
+  
+  const usage = usageTracker.get(key) || { bytes: 0, lastReset: Date.now() };
+  const usedGB = (usage.bytes / (1024 * 1024 * 1024)).toFixed(2);
+  const remainingGB = ((DAILY_LIMIT - usage.bytes) / (1024 * 1024 * 1024)).toFixed(2);
+  
+  res.json({
+    used: `${usedGB}GB`,
+    remaining: `${remainingGB}GB`,
+    limit: '2GB',
+    percentage: Math.round((usage.bytes / DAILY_LIMIT) * 100),
+    resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  });
+});
+
 // Upload from device
-app.post('/api/upload/device', upload.array('files', 10), async (req, res) => {
+app.post('/api/upload/device', trackUsage, upload.array('files', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -195,6 +258,11 @@ app.post('/api/upload/device', upload.array('files', 10), async (req, res) => {
           publicId: cloudinaryResult.public_id
         });
         
+        // Track usage
+        if (req.usageTracker) {
+          req.usageTracker.usage.bytes += file.size;
+        }
+        
         // Clean up local file
         await fs.remove(file.path);
       } catch (error) {
@@ -213,7 +281,7 @@ app.post('/api/upload/device', upload.array('files', 10), async (req, res) => {
 });
 
 // Upload from URL
-app.post('/api/upload/url', async (req, res) => {
+app.post('/api/upload/url', trackUsage, async (req, res) => {
   try {
     const { url } = req.body;
     
@@ -312,6 +380,26 @@ cron.schedule('0 */2 * * *', async () => {
   } catch (error) {
     console.error('Cleanup error:', error);
   }
+});
+
+// Reset daily usage (runs every day at midnight)
+cron.schedule('0 0 * * *', () => {
+  const today = new Date().toDateString();
+  const keysToDelete = [];
+  
+  for (const [key, usage] of usageTracker.entries()) {
+    const keyDate = key.split('-').slice(1).join('-');
+    if (keyDate !== today) {
+      keysToDelete.push(key);
+    }
+  }
+  
+  keysToDelete.forEach(key => {
+    usageTracker.delete(key);
+    console.log(`Reset daily usage for: ${key}`);
+  });
+  
+  console.log(`Daily usage reset completed. Active users: ${usageTracker.size}`);
 });
 
 // Error handling middleware
