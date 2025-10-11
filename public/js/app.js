@@ -643,6 +643,11 @@ async function downloadFiles(results) {
     try {
         console.log(`Starting download for ${results.length} file(s)`);
         
+        // Show download processing state
+        convertBtn.disabled = true;
+        convertBtn.querySelector('.btn-text').textContent = 'Downloading...';
+        convertBtn.querySelector('.btn-loading').style.display = 'flex';
+        
         // Prepare files data for backend
         const files = results.map(result => ({
             publicId: result.publicId,
@@ -692,6 +697,30 @@ async function downloadFiles(results) {
         link.download = filename;
         link.style.display = 'none';
         
+        // Track download completion with multiple methods
+        let downloadStarted = false;
+        
+        link.addEventListener('click', () => {
+            downloadStarted = true;
+            // Reset button state immediately when download starts
+            setTimeout(() => {
+                if (downloadStarted) {
+                    convertBtn.disabled = false;
+                    convertBtn.querySelector('.btn-text').textContent = 'Download All';
+                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            }, 200); // Small delay to ensure download starts
+        });
+        
+        // Fallback: Reset button after a short timeout regardless
+        setTimeout(() => {
+            if (downloadStarted) {
+                convertBtn.disabled = false;
+                convertBtn.querySelector('.btn-text').textContent = 'Download All';
+                convertBtn.querySelector('.btn-loading').style.display = 'none';
+            }
+        }, 1000); // Maximum 1 second processing state
+        
         // Add to DOM, click, and remove immediately
         document.body.appendChild(link);
         link.click();
@@ -703,7 +732,7 @@ async function downloadFiles(results) {
         }, 100);
         
         // Show success message briefly
-        if (fileCount === '1') {
+        if (results.length === 1) {
             showToast('Downloaded!', 'success');
         } else {
             showToast(`ZIP downloaded!`, 'success');
@@ -712,6 +741,11 @@ async function downloadFiles(results) {
     } catch (error) {
         console.error('Download error:', error);
         showToast(`Download failed: ${error.message}`, 'error');
+        
+        // Reset button state on error
+        convertBtn.disabled = false;
+        convertBtn.querySelector('.btn-text').textContent = 'Download All';
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
     }
 }
 
