@@ -125,59 +125,99 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024 * 1024, // 2GB
-    files: 10 // Max 10 files at once
+    fileSize: 2 * 1024 * 1024 * 1024, // 2GB
+    files: 10
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = process.env.ALLOWED_MIME_TYPES.split(',');
-    if (allowedMimes.includes(file.mimetype)) {
+    try {
+      validateFile(file);
       cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only image files are allowed.'), false);
+    } catch (error) {
+      cb(new Error(error.message), false);
     }
   }
 });
 
-// File validation helper
+// Lightweight file format validation
+const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
+const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
+
+// Cloudinary supported formats (for conversion)
+const CLOUDINARY_FORMATS = {
+  'PNG': 'png', 'BMP': 'bmp', 'GIF': 'gif', 'ICO': 'ico', 
+  'JPEG': 'jpg', 'JPG': 'jpg', 'SVG': 'svg', 'TIFF': 'tiff', 'WebP': 'webp'
+};
+
 const validateFile = (file) => {
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/tiff', 'image/ico', 'image/eps', 'image/psd', 'image/tga'];
-  const maxSize = parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024 * 1024;
-  
-  if (!allowedTypes.includes(file.mimetype)) {
-    throw new Error('Invalid file type');
-  }
+  const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
   
   if (file.size > maxSize) {
-    throw new Error('File too large');
+    throw new Error('File too large. Maximum size: 2GB');
+  }
+  
+  const ext = path.extname(file.originalname).toLowerCase().slice(1);
+  if (!SUPPORTED_INPUT_FORMATS.includes(ext)) {
+    throw new Error(`Unsupported input format. Supported: ${SUPPORTED_INPUT_FORMATS.join(', ')}`);
   }
   
   return true;
 };
 
-// Upload file to Cloudinary
+// Upload file to Cloudinary with optimized settings
 const uploadToCloudinary = async (filePath, publicId) => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       public_id: publicId,
       resource_type: 'auto',
-      folder: 'love-u-convert'
+      folder: 'love-u-convert',
+      timeout: 30000,
+      chunk_size: 6000000 // 6MB chunks for speed
     });
     return result;
   } catch (error) {
-    throw new Error(`Cloudinary upload failed: ${error.message}`);
+    if (error.http_code === 429) {
+      // Rate limit - wait 1s and retry once
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        return await cloudinary.uploader.upload(filePath, {
+          public_id: publicId,
+          resource_type: 'auto',
+          folder: 'love-u-convert',
+          timeout: 30000
+        });
+      } catch (retryError) {
+        throw new Error('Upload failed: Rate limit exceeded');
+      }
+    }
+    throw new Error(`Upload failed: ${error.message}`);
   }
 };
 
-// Convert file format using Cloudinary
+// Convert file format using Cloudinary with lightweight validation
 const convertFile = async (publicId, originalFormat, targetFormat) => {
   try {
+    // Check if Cloudinary supports this format
+    const cloudinaryFormat = CLOUDINARY_FORMATS[targetFormat];
+    if (!cloudinaryFormat) {
+      throw new Error(`Cloudinary does not support ${targetFormat} conversion`);
+    }
+    
     const transformation = {
-      format: targetFormat.toLowerCase(),
+      format: cloudinaryFormat,
       quality: 'auto',
-      fetch_format: targetFormat.toLowerCase()
+      fetch_format: cloudinaryFormat,
+      flags: 'progressive' // For faster loading
     };
     
     const url = cloudinary.url(publicId, transformation);
+    
+    // Trigger conversion with timeout
+    try {
+      await axios.head(url, { timeout: 5000 });
+    } catch (headError) {
+      // Continue even if HEAD fails
+    }
+    
     return url;
   } catch (error) {
     throw new Error(`Conversion failed: ${error.message}`);
@@ -235,7 +275,7 @@ app.get('/api/usage', (req, res) => {
   });
 });
 
-// Upload from device
+// Upload from device with limited parallel processing
 app.post('/api/upload/device', trackUsage, upload.array('files', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -243,40 +283,81 @@ app.post('/api/upload/device', trackUsage, upload.array('files', 10), async (req
     }
 
     const results = [];
+    const errors = [];
     
-    for (const file of req.files) {
-      try {
-        validateFile(file);
-        const publicId = `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const cloudinaryResult = await uploadToCloudinary(file.path, publicId);
-        
-        results.push({
-          id: publicId,
-          originalName: file.originalname,
-          size: file.size,
-          format: path.extname(file.originalname).slice(1),
-          url: cloudinaryResult.secure_url,
-          publicId: cloudinaryResult.public_id
-        });
-        
-        // Track usage
-        if (req.usageTracker) {
-          req.usageTracker.usage.bytes += file.size;
+    // Process files in batches of 5 to avoid overload
+    const batchSize = 5;
+    for (let i = 0; i < req.files.length; i += batchSize) {
+      const batch = req.files.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const publicId = `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const cloudinaryResult = await uploadToCloudinary(file.path, publicId);
+          
+          // Track usage
+          if (req.usageTracker) {
+            req.usageTracker.usage.bytes += file.size;
+          }
+          
+          // Clean up local file
+          await fs.remove(file.path);
+          
+          return {
+            success: true,
+            result: {
+              id: publicId,
+              originalName: file.originalname,
+              size: file.size,
+              format: path.extname(file.originalname).slice(1).toLowerCase(),
+              url: cloudinaryResult.secure_url,
+              publicId: cloudinaryResult.public_id
+            }
+          };
+        } catch (error) {
+          console.error('Error processing file:', error);
+          // Clean up local file on error
+          if (file.path) {
+            await fs.remove(file.path).catch(() => {});
+          }
+          return {
+            success: false,
+            error: error.message,
+            filename: file.originalname
+          };
         }
-        
-        // Clean up local file
-        await fs.remove(file.path);
-      } catch (error) {
-        console.error('Error processing file:', error);
-        // Clean up local file on error
-        if (file.path) {
-          await fs.remove(file.path).catch(() => {});
+      });
+      
+      // Wait for batch to complete
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          if (result.value.success) {
+            results.push(result.value.result);
+          } else {
+            errors.push({
+              filename: result.value.filename,
+              error: result.value.error
+            });
+          }
+        } else {
+          errors.push({
+            filename: 'unknown',
+            error: result.reason?.message || 'Upload failed'
+          });
         }
-      }
+      });
     }
     
-    res.json({ files: results });
+    const response = { files: results };
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+    
+    res.json(response);
   } catch (error) {
+    console.error('Upload endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -308,7 +389,7 @@ app.post('/api/upload/url', trackUsage, async (req, res) => {
   }
 });
 
-// Convert files
+// Convert files with parallel processing
 app.post('/api/convert', async (req, res) => {
   try {
     const { files, targetFormat } = req.body;
@@ -317,27 +398,71 @@ app.post('/api/convert', async (req, res) => {
       return res.status(400).json({ error: 'No files to convert' });
     }
     
-    if (!targetFormat) {
-      return res.status(400).json({ error: 'Target format is required' });
+    if (!targetFormat || !SUPPORTED_OUTPUT_FORMATS.includes(targetFormat)) {
+      return res.status(400).json({ 
+        error: `Unsupported output format. Supported: ${SUPPORTED_OUTPUT_FORMATS.join(', ')}` 
+      });
     }
     
     const convertedFiles = [];
+    const errors = [];
     
-    for (const file of files) {
-      try {
-        const convertedUrl = await convertFile(file.publicId, file.format, targetFormat);
-        convertedFiles.push({
-          originalName: file.originalName,
-          convertedUrl: convertedUrl,
-          format: targetFormat
-        });
-      } catch (error) {
-        console.error('Error converting file:', error);
-      }
+    // Process conversions in parallel (max 5 at a time)
+    const batchSize = 5;
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const convertedUrl = await convertFile(file.publicId, file.format, targetFormat);
+          return {
+            success: true,
+            result: {
+              originalName: file.originalName,
+              convertedUrl: convertedUrl,
+              format: targetFormat,
+              publicId: file.publicId
+            }
+          };
+        } catch (error) {
+          console.error('Error converting file:', error);
+          return {
+            success: false,
+            error: error.message,
+            filename: file.originalName
+          };
+        }
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          if (result.value.success) {
+            convertedFiles.push(result.value.result);
+          } else {
+            errors.push({
+              filename: result.value.filename,
+              error: result.value.error
+            });
+          }
+        } else {
+          errors.push({
+            filename: 'unknown',
+            error: result.reason?.message || 'Conversion failed'
+          });
+        }
+      });
     }
     
-    res.json({ convertedFiles });
+    const response = { convertedFiles };
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+    
+    res.json(response);
   } catch (error) {
+    console.error('Convert endpoint error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -473,14 +598,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Cleanup old files (runs every 2 hours)
-cron.schedule('0 */2 * * *', async () => {
+// Lightweight file cleanup with setTimeout
+const cleanupFiles = async () => {
   try {
     const uploadsDir = 'uploads';
     if (await fs.pathExists(uploadsDir)) {
       const files = await fs.readdir(uploadsDir);
       const now = Date.now();
-      const maxAge = parseInt(process.env.CLEANUP_INTERVAL_HOURS) * 60 * 60 * 1000;
+      const maxAge = 2 * 60 * 60 * 1000; // 2 hours
       
       for (const file of files) {
         const filePath = path.join(uploadsDir, file);
@@ -488,14 +613,19 @@ cron.schedule('0 */2 * * *', async () => {
         
         if (now - stats.mtime.getTime() > maxAge) {
           await fs.remove(filePath);
-          console.log(`Cleaned up old file: ${file}`);
         }
       }
     }
   } catch (error) {
     console.error('Cleanup error:', error);
   }
-});
+  
+  // Schedule next cleanup in 2 hours
+  setTimeout(cleanupFiles, 2 * 60 * 60 * 1000);
+};
+
+// Start cleanup cycle
+setTimeout(cleanupFiles, 2 * 60 * 60 * 1000);
 
 // Reset daily usage (runs every day at midnight)
 cron.schedule('0 0 * * *', () => {

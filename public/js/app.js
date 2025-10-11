@@ -3,6 +3,10 @@ let uploadedFiles = [];
 let selectedFormat = 'PNG';
 let isConverting = false;
 
+// Lightweight format validation
+const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
+const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
+
 // DOM elements
 const header = document.getElementById('header');
 const uploadBox = document.getElementById('uploadBox');
@@ -195,27 +199,44 @@ function handleDrop(e) {
     processFiles(files);
 }
 
+// Lightweight file validation
+function validateFile(file) {
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    
+    if (file.size > maxSize) {
+        throw new Error(`File "${file.name}" is too large. Maximum size: 2GB`);
+    }
+    
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!SUPPORTED_INPUT_FORMATS.includes(ext)) {
+        throw new Error(`Unsupported file. Supported inputs: ${SUPPORTED_INPUT_FORMATS.join(', ')}`);
+    }
+    
+    return true;
+}
+
 function processFiles(files) {
-    const validFiles = files.filter(file => {
-        const isValidType = file.type.startsWith('image/');
-        const isValidSize = file.size <= 2 * 1024 * 1024 * 1024; // 2GB
-        
-        if (!isValidType) {
-            showToast('Please select only image files', 'error');
-            return false;
+    const validFiles = [];
+    const errors = [];
+    
+    files.forEach(file => {
+        try {
+            validateFile(file);
+            validFiles.push(file);
+        } catch (error) {
+            errors.push(error.message);
         }
-        
-        if (!isValidSize) {
-            showToast('File size must be less than 2GB', 'error');
-            return false;
-        }
-        
-        return true;
     });
+    
+    // Show errors
+    if (errors.length > 0) {
+        const errorMessage = errors.length === 1 ? errors[0] : `${errors.length} files have errors. First: ${errors[0]}`;
+        showToast(errorMessage, 'error');
+    }
     
     if (validFiles.length === 0) return;
     
-    // Add files to state
+    // Add valid files to state
     validFiles.forEach(file => {
         const fileId = generateFileId();
         const fileObj = {
@@ -233,7 +254,8 @@ function processFiles(files) {
     updateFileList();
     updateUI();
     
-    showToast(`${validFiles.length} file(s) added successfully`, 'success');
+    const successMessage = validFiles.length === 1 ? 'File added successfully' : `${validFiles.length} files added successfully`;
+    showToast(successMessage, 'success');
 }
 
 function generateFileId() {
@@ -523,6 +545,12 @@ async function uploadFile(file) {
     }
     
     const result = await response.json();
+    
+    // Handle partial success
+    if (result.errors && result.errors.length > 0) {
+        console.warn('Some files failed to upload:', result.errors);
+    }
+    
     return result.files[0];
 }
 
@@ -544,6 +572,16 @@ async function convertFile(publicId, format) {
     }
     
     const result = await response.json();
+    
+    // Handle partial success
+    if (result.errors && result.errors.length > 0) {
+        console.warn('Some files failed to convert:', result.errors);
+    }
+    
+    if (!result.convertedFiles || result.convertedFiles.length === 0) {
+        throw new Error('No files were successfully converted');
+    }
+    
     return result.convertedFiles[0].convertedUrl;
 }
 
