@@ -131,6 +131,7 @@ body {
     position: relative;
     transition: var(--transition);
     cursor: pointer;
+    overflow: visible;
 }
 
 .upload-box:hover {
@@ -192,7 +193,7 @@ body {
 /* File Source Dropdown */
 .file-source-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(50% + 30px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--background);
@@ -201,6 +202,7 @@ body {
     box-shadow: var(--shadow-xl);
     padding: 8px 0;
     min-width: 200px;
+    max-width: calc(100% - 40px);
     z-index: 100;
     opacity: 0;
     visibility: hidden;
@@ -210,7 +212,7 @@ body {
 .file-source-dropdown.show {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(8px);
+    transform: translateX(-50%);
 }
 
 .dropdown-item {
