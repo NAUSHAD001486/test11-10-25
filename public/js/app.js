@@ -484,46 +484,35 @@ async function convertFiles(startTime) {
     
     for (let i = 0; i < uploadedFiles.length; i++) {
         const fileObj = uploadedFiles[i];
-        const fileProgress = ((i + 1) / totalFiles) * 100;
         
-        // Calculate elapsed time and estimated remaining time
-        const elapsedTime = Date.now() - startTime;
-        const avgTimePerFile = elapsedTime / (i + 1);
-        const remainingFiles = totalFiles - (i + 1);
-        const estimatedRemainingTime = avgTimePerFile * remainingFiles;
+        // Start with 0% progress for this file
+        let fileProgress = 0;
+        const fileStartTime = Date.now();
         
-        // Format time display
-        const formatTime = (ms) => {
-            const seconds = Math.ceil(ms / 1000);
-            if (seconds < 60) return `${seconds}s`;
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}m ${remainingSeconds}s`;
-        };
-        
-        // Real-time progress counter from 1 to 100
-        const progressCounter = Math.round(fileProgress);
-        const timeText = `Finalizing ${progressCounter}...`;
-        
-        // Smooth progress animation
-        animateProgress(fileProgress, timeText);
+        // Show initial progress
+        updateProgress(fileProgress, `Finalizing ${Math.round(fileProgress)}...`);
         
         try {
             let result;
             
-            if (fileObj.file) {
-                // Upload file first
-                result = await uploadFile(fileObj.file);
-            } else {
-                // File already uploaded from URL
-                result = {
-                    publicId: fileObj.publicId,
-                    originalName: fileObj.name
-                };
-            }
-            
-            // Convert file
-            const convertedUrl = await convertFile(result.publicId, selectedFormat);
+        // Upload phase (0-40%)
+        if (fileObj.file) {
+            updateProgress(20, `Finalizing ${Math.round(20)}...`);
+            result = await uploadFile(fileObj.file);
+            updateProgress(40, `Finalizing ${Math.round(40)}...`);
+        } else {
+            // File already uploaded from URL
+            result = {
+                publicId: fileObj.publicId,
+                originalName: fileObj.name
+            };
+            updateProgress(40, `Finalizing ${Math.round(40)}...`);
+        }
+        
+        // Convert phase (40-95%)
+        updateProgress(60, `Finalizing ${Math.round(60)}...`);
+        const convertedUrl = await convertFile(result.publicId, selectedFormat);
+        updateProgress(95, `Finalizing ${Math.round(95)}...`);
             
             results.push({
                 originalName: result.originalName,
@@ -531,11 +520,21 @@ async function convertFiles(startTime) {
                 format: selectedFormat,
                 publicId: result.publicId
             });
+            
+            // Complete this file (95-100%)
+            updateProgress(100, `Finalizing ${Math.round(100)}...`);
+            
+            // Small delay to show 100% before moving to next file
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
         } catch (error) {
             console.error('Error converting file:', error);
             // Continue with other files
         }
     }
+    
+    // Final completion
+    updateProgress(100, 'Done!');
     
     return results;
 }
