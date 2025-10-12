@@ -193,7 +193,7 @@ body {
 /* File Source Dropdown */
 .file-source-dropdown {
     position: absolute;
-    top: calc(50% + 15px);
+    top: calc(50% + 10px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--background);
