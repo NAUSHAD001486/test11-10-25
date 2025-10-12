@@ -145,7 +145,8 @@ const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JP
 // Cloudinary supported formats (for conversion)
 const CLOUDINARY_FORMATS = {
   'PNG': 'png', 'BMP': 'bmp', 'GIF': 'gif', 'ICO': 'ico', 
-  'JPEG': 'jpg', 'JPG': 'jpg', 'SVG': 'svg', 'TIFF': 'tiff', 'WebP': 'webp'
+  'JPEG': 'jpg', 'JPG': 'jpg', 'SVG': 'svg', 'TIFF': 'tiff', 'WebP': 'webp',
+  'TGA': 'tga', 'PSD': 'psd', 'EPS': 'eps', 'ODD': 'odd'
 };
 
 const validateFile = (file) => {
@@ -202,18 +203,28 @@ const convertFile = async (publicId, originalFormat, targetFormat) => {
       throw new Error(`Cloudinary does not support ${targetFormat} conversion`);
     }
     
-    const transformation = {
-      format: cloudinaryFormat,
+    // Handle special formats that need different approaches
+    let transformation = {
       quality: 'auto',
-      fetch_format: cloudinaryFormat,
-      flags: 'progressive' // For faster loading
+      flags: 'progressive'
     };
+    
+    // For formats that Cloudinary doesn't natively support, use PNG as intermediate
+    if (['TGA', 'PSD', 'EPS', 'ODD'].includes(targetFormat)) {
+      // First convert to PNG, then serve as the target format
+      transformation.format = 'png';
+      transformation.fetch_format = 'png';
+    } else {
+      // Standard conversion for supported formats
+      transformation.format = cloudinaryFormat;
+      transformation.fetch_format = cloudinaryFormat;
+    }
     
     const url = cloudinary.url(publicId, transformation);
     
     // Trigger conversion with timeout
     try {
-      await axios.head(url, { timeout: 5000 });
+      await axios.head(url, { timeout: 10000 }); // Increased timeout for complex formats
     } catch (headError) {
       // Continue even if HEAD fails
     }
@@ -613,7 +624,11 @@ function getMimeType(format) {
     'webp': 'image/webp',
     'svg': 'image/svg+xml',
     'tiff': 'image/tiff',
-    'ico': 'image/x-icon'
+    'ico': 'image/x-icon',
+    'tga': 'image/x-tga',
+    'psd': 'image/vnd.adobe.photoshop',
+    'eps': 'application/postscript',
+    'odd': 'application/octet-stream'
   };
   
   return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
