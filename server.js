@@ -149,6 +149,9 @@ const CLOUDINARY_FORMATS = {
   'TGA': 'tga', 'PSD': 'psd', 'EPS': 'eps', 'ODD': 'odd'
 };
 
+// Formats that Cloudinary doesn't natively support (will convert to PNG)
+const CLOUDINARY_UNSUPPORTED_FORMATS = ['TGA', 'PSD', 'EPS', 'ODD'];
+
 const validateFile = (file) => {
   const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
   
@@ -203,33 +206,57 @@ const convertFile = async (publicId, originalFormat, targetFormat) => {
       throw new Error(`Cloudinary does not support ${targetFormat} conversion`);
     }
     
-    // Handle special formats that need different approaches
-    let transformation = {
-      quality: 'auto',
-      flags: 'progressive'
-    };
-    
-    // For formats that Cloudinary doesn't natively support, use PNG as intermediate
-    if (['TGA', 'PSD', 'EPS', 'ODD'].includes(targetFormat)) {
-      // First convert to PNG, then serve as the target format
-      transformation.format = 'png';
-      transformation.fetch_format = 'png';
+    // Handle special formats that Cloudinary doesn't natively support
+    if (CLOUDINARY_UNSUPPORTED_FORMATS.includes(targetFormat)) {
+      // For unsupported formats, convert to PNG and return with special flag
+      const transformation = {
+        format: 'png',
+        fetch_format: 'png',
+        quality: 'auto',
+        flags: 'progressive'
+      };
+      
+      const url = cloudinary.url(publicId, transformation);
+      
+      // Trigger conversion with timeout
+      try {
+        await axios.head(url, { timeout: 10000 });
+      } catch (headError) {
+        // Continue even if HEAD fails
+      }
+      
+      // Return URL with special format flag
+      return {
+        url: url,
+        actualFormat: 'png',
+        requestedFormat: targetFormat.toLowerCase(),
+        needsConversion: true
+      };
     } else {
       // Standard conversion for supported formats
-      transformation.format = cloudinaryFormat;
-      transformation.fetch_format = cloudinaryFormat;
+      const transformation = {
+        format: cloudinaryFormat,
+        fetch_format: cloudinaryFormat,
+        quality: 'auto',
+        flags: 'progressive'
+      };
+      
+      const url = cloudinary.url(publicId, transformation);
+      
+      // Trigger conversion with timeout
+      try {
+        await axios.head(url, { timeout: 10000 });
+      } catch (headError) {
+        // Continue even if HEAD fails
+      }
+      
+      return {
+        url: url,
+        actualFormat: cloudinaryFormat,
+        requestedFormat: targetFormat.toLowerCase(),
+        needsConversion: false
+      };
     }
-    
-    const url = cloudinary.url(publicId, transformation);
-    
-    // Trigger conversion with timeout
-    try {
-      await axios.head(url, { timeout: 10000 }); // Increased timeout for complex formats
-    } catch (headError) {
-      // Continue even if HEAD fails
-    }
-    
-    return url;
   } catch (error) {
     throw new Error(`Conversion failed: ${error.message}`);
   }
@@ -425,14 +452,17 @@ app.post('/api/convert', async (req, res) => {
       
       const batchPromises = batch.map(async (file) => {
         try {
-          const convertedUrl = await convertFile(file.publicId, file.format, targetFormat);
+          const conversionResult = await convertFile(file.publicId, file.format, targetFormat);
           return {
             success: true,
             result: {
               originalName: file.originalName,
-              convertedUrl: convertedUrl,
+              convertedUrl: conversionResult.url,
               format: targetFormat,
-              publicId: file.publicId
+              publicId: file.publicId,
+              actualFormat: conversionResult.actualFormat,
+              requestedFormat: conversionResult.requestedFormat,
+              needsConversion: conversionResult.needsConversion
             }
           };
         } catch (error) {
@@ -497,12 +527,12 @@ app.post('/api/download', async (req, res) => {
       console.log(`Downloading single file: ${originalName} (${format})`);
       
       // Get the converted URL
-      const convertedUrl = await convertFile(publicId, 'webp', format);
+      const conversionResult = await convertFile(publicId, 'webp', format);
       
       // Fetch the file from Cloudinary
       const response = await axios({
         method: 'GET',
-        url: convertedUrl,
+        url: conversionResult.url,
         responseType: 'stream',
         timeout: 10000 // Reduced timeout for faster response
       });
@@ -520,8 +550,11 @@ app.post('/api/download', async (req, res) => {
           baseName = 'converted';
         }
       }
-      const filename = `${baseName}.${format.toLowerCase()}`;
-      const mimeType = getMimeType(format);
+      // Use actual format for filename, but requested format for MIME type
+      const actualFormat = conversionResult.actualFormat || format.toLowerCase();
+      const requestedFormat = conversionResult.requestedFormat || format.toLowerCase();
+      const filename = `${baseName}.${requestedFormat}`;
+      const mimeType = getMimeType(requestedFormat);
       
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -567,12 +600,12 @@ app.post('/api/download', async (req, res) => {
           console.log(`Adding to ZIP: ${originalName} (${format})`);
           
           // Get the converted URL
-          const convertedUrl = await convertFile(publicId, 'webp', format);
+          const conversionResult = await convertFile(publicId, 'webp', format);
           
           // Fetch the file from Cloudinary
           const fileResponse = await axios({
             method: 'GET',
-            url: convertedUrl,
+            url: conversionResult.url,
             responseType: 'stream',
             timeout: 10000 // Reduced timeout for faster response
           });
@@ -590,7 +623,9 @@ app.post('/api/download', async (req, res) => {
               baseName = `file_${i + 1}`;
             }
           }
-          const zipFilename = `${baseName}.${format.toLowerCase()}`;
+          // Use requested format for ZIP filename
+          const requestedFormat = conversionResult.requestedFormat || format.toLowerCase();
+          const zipFilename = `${baseName}.${requestedFormat}`;
           
           // Add file to archive
           archive.append(fileResponse.data, { name: zipFilename });
