@@ -256,6 +256,7 @@ body {
     display: none;
     z-index: 10;
     margin-bottom: 7.2%;
+    margin-top: 50px;
 }
 
 .file-list-container.show {
@@ -348,7 +349,7 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: var(--transition);
-    z-index: 5;
+    z-index: 15;
     margin-top: -20px;
 }
 
