@@ -255,7 +255,7 @@ body {
     border: 1px solid var(--border-color);
     display: none;
     z-index: 10;
-    margin-bottom: 1.8%;
+    margin-bottom: 7.2%;
 }
 
 .file-list-container.show {
