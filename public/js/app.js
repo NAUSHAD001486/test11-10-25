@@ -497,6 +497,7 @@ async function convertFiles(startTime) {
             
         // Start continuous progress animation
         let currentProgress = 0;
+        let isProcessingComplete = false;
         const progressInterval = setInterval(() => {
             // Smoother increments, especially in 90s range
             let increment;
@@ -504,12 +505,25 @@ async function convertFiles(startTime) {
                 increment = Math.random() * 2 + 1; // 1-3 points
             } else if (currentProgress < 90) {
                 increment = Math.random() * 1.5 + 0.5; // 0.5-2 points
-            } else {
+            } else if (currentProgress < 95) {
                 increment = Math.random() * 0.8 + 0.2; // 0.2-1 points (smoother in 90s)
+            } else {
+                // 95-99 range: very small increments
+                increment = Math.random() * 0.3 + 0.1; // 0.1-0.4 points
             }
             
             currentProgress += increment;
-            if (currentProgress > 95) currentProgress = 95;
+            
+            // If processing is complete, go to 100, otherwise cap at 99
+            if (isProcessingComplete) {
+                if (currentProgress >= 100) {
+                    currentProgress = 100;
+                    clearInterval(progressInterval);
+                }
+            } else {
+                if (currentProgress > 99) currentProgress = 99;
+            }
+            
             updateProgress(currentProgress, `Finalizing ${Math.round(currentProgress)}...`);
         }, 80); // Update every 80ms for smoother flow
         
@@ -527,8 +541,8 @@ async function convertFiles(startTime) {
         // Convert phase (40-95%)
         const convertedUrl = await convertFile(result.publicId, selectedFormat);
         
-        // Stop the continuous progress and set to 100
-        clearInterval(progressInterval);
+        // Mark processing as complete to allow progress to reach 100
+        isProcessingComplete = true;
             
             results.push({
                 originalName: result.originalName,
@@ -537,11 +551,8 @@ async function convertFiles(startTime) {
                 publicId: result.publicId
             });
             
-            // Complete this file (95-100%)
-            updateProgress(100, `Finalizing ${Math.round(100)}...`);
-            
-            // Small delay to show 100% before moving to next file
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Wait for progress to reach 100 naturally
+            await new Promise(resolve => setTimeout(resolve, 500));
             
         } catch (error) {
             console.error('Error converting file:', error);
