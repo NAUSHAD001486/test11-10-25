@@ -697,59 +697,7 @@ body {
     cursor: not-allowed;
 }
 
-/* Toast */
-.toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: var(--background);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-xl);
-    padding: 16px 20px;
-    z-index: 3000;
-    transform: translateX(100%);
-    transition: var(--transition);
-    max-width: 400px;
-}
-
-.toast.show {
-    transform: translateX(0);
-}
-
-.toast.success {
-    border-color: #10B981;
-    background: #F0FDF4;
-}
-
-.toast.error {
-    border-color: #EF4444;
-    background: #FEF2F2;
-}
-
-.toast-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.toast-icon {
-    font-size: 18px;
-}
-
-.toast-message {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.toast.success .toast-message {
-    color: #065F46;
-}
-
-.toast.error .toast-message {
-    color: #991B1B;
-}
+/* Toast notifications removed */
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -804,11 +752,7 @@ body {
         margin: 20px;
     }
     
-    .toast {
-        right: 16px;
-        left: 16px;
-        max-width: none;
-    }
+    /* Toast responsive styles removed */
 }
 
 @media (max-width: 480px) {
@@ -887,9 +831,7 @@ select:focus-visible {
     .header,
     .upload-section,
     .modal,
-    .toast {
-        display: none !important;
-    }
+    /* Toast print styles removed */
     
     .main-content {
         padding-top: 0;

@@ -26,10 +26,7 @@ const urlModal = document.getElementById('urlModal');
 const urlInput = document.getElementById('urlInput');
 const urlSubmit = document.getElementById('urlSubmit');
 const modalClose = document.getElementById('modalClose');
-const errorToast = document.getElementById('errorToast');
-const successToast = document.getElementById('successToast');
-const toastMessage = document.getElementById('toastMessage');
-const successMessage = document.getElementById('successMessage');
+// Toast notifications removed
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
@@ -154,7 +151,7 @@ function handleFileSourceSelection(e) {
         case 'google-drive':
         case 'onedrive':
         case 'dropbox':
-            showToast('Cloud storage integration coming soon!', 'info');
+            // Cloud storage integration coming soon!
             break;
     }
 }
@@ -244,7 +241,7 @@ function processFiles(files) {
     // Show errors
     if (errors.length > 0) {
         const errorMessage = errors.length === 1 ? errors[0] : `${errors.length} files have errors. First: ${errors[0]}`;
-        showToast(errorMessage, 'error');
+        // Error: ${errorMessage}
     }
     
     if (validFiles.length === 0) return;
@@ -268,7 +265,7 @@ function processFiles(files) {
     updateUI();
     
     const successMessage = validFiles.length === 1 ? 'File added successfully' : `${validFiles.length} files added successfully`;
-    showToast(successMessage, 'success');
+    // Success: ${successMessage}
 }
 
 function generateFileId() {
@@ -340,7 +337,7 @@ function removeFile(fileId) {
 }
 
 function showFileSettings(fileId) {
-    showToast('File settings coming soon!', 'info');
+    // File settings coming soon!
 }
 
 function updateUI() {
@@ -377,12 +374,12 @@ function handleUrlSubmit() {
     const url = urlInput.value.trim();
     
     if (!url) {
-        showToast('Please enter a valid URL', 'error');
+        // Please enter a valid URL
         return;
     }
     
     if (!isValidImageUrl(url)) {
-        showToast('Please enter a valid image URL', 'error');
+        // Please enter a valid image URL
         return;
     }
     
@@ -395,10 +392,10 @@ function handleUrlSubmit() {
             updateFileList();
             updateUI();
             closeUrlModal();
-            showToast('File uploaded successfully', 'success');
+            // File uploaded successfully
         })
         .catch(error => {
-            showToast(error.message, 'error');
+            // Error: ${error.message}
         })
         .finally(() => {
             urlSubmit.disabled = false;
@@ -464,9 +461,9 @@ async function handleConvert() {
     try {
         const results = await convertFiles(startTime);
         showResults(results);
-        showToast('Conversion completed successfully!', 'success');
+        // Conversion completed successfully!
     } catch (error) {
-        showToast(error.message, 'error');
+        // Error: ${error.message}
     } finally {
         isConverting = false;
         convertBtn.disabled = false;
@@ -751,14 +748,14 @@ async function downloadFiles(results) {
         
         // Show success message briefly
         if (results.length === 1) {
-            showToast('Downloaded!', 'success');
+            // Downloaded!
         } else {
-            showToast(`ZIP downloaded!`, 'success');
+            // ZIP downloaded!
         }
         
     } catch (error) {
         console.error('Download error:', error);
-        showToast(`Download failed: ${error.message}`, 'error');
+        // Download failed: ${error.message}
         
         // Reset button state on error (spinner will be hidden by 2-second timeout)
         convertBtn.disabled = false;
@@ -772,23 +769,7 @@ async function downloadAllFiles(results) {
     await downloadFiles(results);
 }
 
-// Toast notifications
-function showToast(message, type = 'info') {
-    const toast = type === 'error' ? errorToast : successToast;
-    const messageElement = type === 'error' ? toastMessage : successMessage;
-    
-    messageElement.textContent = message;
-    toast.classList.add('show');
-    
-    // Auto hide after 2 seconds for faster UI
-    setTimeout(() => {
-        hideToast(toast);
-    }, 2000);
-}
-
-function hideToast(toast) {
-    toast.classList.remove('show');
-}
+// Toast notifications removed
 
 // Utility functions
 function formatFileSize(bytes) {
@@ -804,12 +785,12 @@ function formatFileSize(bytes) {
 // Error handling
 window.addEventListener('error', function(e) {
     console.error('Global error:', e.error);
-    showToast('An unexpected error occurred', 'error');
+    // An unexpected error occurred
 });
 
 window.addEventListener('unhandledrejection', function(e) {
     console.error('Unhandled promise rejection:', e.reason);
-    showToast('An unexpected error occurred', 'error');
+    // An unexpected error occurred
 });
 
 // PWA install prompt
@@ -829,9 +810,9 @@ function showInstallPrompt() {
 
 // Offline handling
 window.addEventListener('online', () => {
-    showToast('Connection restored', 'success');
+    // Connection restored
 });
 
 window.addEventListener('offline', () => {
-    showToast('You are offline. Some features may not work.', 'error');
+    // You are offline. Some features may not work.
 });
