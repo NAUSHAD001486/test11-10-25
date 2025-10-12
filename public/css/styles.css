@@ -246,6 +246,7 @@ body {
 
 /* File List */
 .file-list-container {
+    position: relative;
     margin-top: 20px;
     max-height: 400px;
     overflow-y: auto;
@@ -336,14 +337,16 @@ body {
 
 /* Output Settings */
 .output-settings {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 12px;
-    margin: 17px 0;
     opacity: 0;
     visibility: hidden;
     transition: var(--transition);
+    z-index: 10;
 }
 
 .output-settings.show {
