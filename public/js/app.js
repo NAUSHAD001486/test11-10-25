@@ -501,9 +501,9 @@ async function convertFiles(startTime) {
             return `${minutes}m ${remainingSeconds}s`;
         };
         
-        const timeText = remainingFiles > 0 
-            ? `Converting ${fileObj.name}... (${formatTime(estimatedRemainingTime)} remaining)`
-            : `Converting ${fileObj.name}... (Finalizing)`;
+        // Real-time progress counter from 1 to 100
+        const progressCounter = Math.round(fileProgress);
+        const timeText = `Finalizing ${progressCounter}...`;
         
         // Smooth progress animation
         animateProgress(fileProgress, timeText);
@@ -599,7 +599,13 @@ function updateProgress(percentage, text) {
     const counterValue = Math.round(percentage);
     
     progressFill.style.width = `${percentage}%`;
-    progressText.textContent = text || `${counterValue}%`;
+    
+    // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc.
+    if (text && text.includes('Finalizing')) {
+        progressText.textContent = `Finalizing ${counterValue}...`;
+    } else {
+        progressText.textContent = text || `${counterValue}%`;
+    }
     
     // Add special styling for "Done" state
     if (text === 'Done!') {
@@ -616,7 +622,7 @@ function animateProgress(targetPercentage, text) {
     const targetValue = Math.round(targetPercentage);
     const currentValue = Math.round(currentPercentage);
     
-    // Animate progress from current to target
+    // Animate progress from current to target with real-time counter
     const duration = 500; // 500ms animation
     const steps = Math.abs(targetValue - currentValue);
     const stepDuration = duration / Math.max(steps, 1);
@@ -628,12 +634,24 @@ function animateProgress(targetPercentage, text) {
         const animatedValue = Math.round(currentValue + (targetValue - currentValue) * progress);
         
         progressFill.style.width = `${animatedValue}%`;
-        progressText.textContent = text || `${animatedValue}%`;
+        
+        // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc.
+        if (text && text.includes('Finalizing')) {
+            progressText.textContent = `Finalizing ${animatedValue}...`;
+        } else {
+            progressText.textContent = text || `${animatedValue}%`;
+        }
         
         if (currentStep >= steps) {
             clearInterval(counter);
             progressFill.style.width = `${targetPercentage}%`;
-            progressText.textContent = text || `${targetValue}%`;
+            
+            // Final counter display
+            if (text && text.includes('Finalizing')) {
+                progressText.textContent = `Finalizing ${targetValue}...`;
+            } else {
+                progressText.textContent = text || `${targetValue}%`;
+            }
         }
     }, stepDuration);
 }
