@@ -390,7 +390,7 @@ body {
 
 .format-options {
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     right: 0;
     background: var(--background);
     border: 1px solid var(--border-color);
@@ -404,12 +404,13 @@ body {
     transition: var(--transition);
     max-height: 200px;
     overflow-y: auto;
+    margin-bottom: 4px;
 }
 
 .format-options.show {
     opacity: 1;
     visibility: visible;
-    transform: translateY(8px);
+    transform: translateY(-8px);
 }
 
 .format-option {
