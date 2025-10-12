@@ -498,10 +498,20 @@ async function convertFiles(startTime) {
         // Start continuous progress animation
         let currentProgress = 0;
         const progressInterval = setInterval(() => {
-            currentProgress += Math.random() * 3 + 1; // Random increment 1-4
+            // Smoother increments, especially in 90s range
+            let increment;
+            if (currentProgress < 80) {
+                increment = Math.random() * 2 + 1; // 1-3 points
+            } else if (currentProgress < 90) {
+                increment = Math.random() * 1.5 + 0.5; // 0.5-2 points
+            } else {
+                increment = Math.random() * 0.8 + 0.2; // 0.2-1 points (smoother in 90s)
+            }
+            
+            currentProgress += increment;
             if (currentProgress > 95) currentProgress = 95;
             updateProgress(currentProgress, `Finalizing ${Math.round(currentProgress)}...`);
-        }, 100); // Update every 100ms
+        }, 80); // Update every 80ms for smoother flow
         
         // Upload phase (0-40%)
         if (fileObj.file) {
