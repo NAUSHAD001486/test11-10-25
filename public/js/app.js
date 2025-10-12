@@ -20,7 +20,7 @@ const convertBtn = document.getElementById('convertBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
-const progressCounter = document.getElementById('progressCounter');
+// Removed progressCounter reference
 const fileInput = document.getElementById('fileInput');
 const urlModal = document.getElementById('urlModal');
 const urlInput = document.getElementById('urlInput');
@@ -603,13 +603,11 @@ function updateProgress(percentage, text) {
     
     progressFill.style.width = `${percentage}%`;
     progressText.textContent = text || `${counterValue}%`;
-    progressCounter.textContent = counterValue;
     
     // Add special styling for "Done" state
     if (text === 'Done!') {
         progressContainer.classList.add('done');
         progressFill.style.background = 'linear-gradient(90deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.7))';
-        progressCounter.textContent = '100';
     } else {
         progressContainer.classList.remove('done');
         progressFill.style.background = 'linear-gradient(90deg, rgba(124, 58, 237, 0.7), rgba(109, 40, 217, 0.7))';
@@ -621,7 +619,7 @@ function animateProgress(targetPercentage, text) {
     const targetValue = Math.round(targetPercentage);
     const currentValue = Math.round(currentPercentage);
     
-    // Animate counter from current to target
+    // Animate progress from current to target
     const duration = 500; // 500ms animation
     const steps = Math.abs(targetValue - currentValue);
     const stepDuration = duration / Math.max(steps, 1);
@@ -632,13 +630,11 @@ function animateProgress(targetPercentage, text) {
         const progress = currentStep / steps;
         const animatedValue = Math.round(currentValue + (targetValue - currentValue) * progress);
         
-        progressCounter.textContent = animatedValue;
         progressFill.style.width = `${animatedValue}%`;
         progressText.textContent = text || `${animatedValue}%`;
         
         if (currentStep >= steps) {
             clearInterval(counter);
-            progressCounter.textContent = targetValue;
             progressFill.style.width = `${targetPercentage}%`;
             progressText.textContent = text || `${targetValue}%`;
         }

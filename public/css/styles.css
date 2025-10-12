@@ -509,16 +509,7 @@ body {
     text-align: center;
 }
 
-.progress-counter {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--primary-color);
-    margin-bottom: 8px;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* Removed progress-counter styling */
 
 .progress-bar {
     width: 52%;
@@ -570,7 +561,7 @@ body {
     font-size: 13px;
     color: var(--text-secondary);
     font-weight: 400;
-    margin: 0;
+    margin: 0 0 8px 0;
     opacity: 0.8;
 }
 
@@ -578,10 +569,7 @@ body {
     animation: done-pulse 0.6s ease-in-out;
 }
 
-.progress-container.done .progress-counter {
-    color: #10B981;
-    animation: done-bounce 0.6s ease-in-out;
-}
+/* Removed progress-counter done styling */
 
 .progress-container.done .progress-text {
     color: #065F46;
