@@ -495,24 +495,30 @@ async function convertFiles(startTime) {
         try {
             let result;
             
+        // Start continuous progress animation
+        let currentProgress = 0;
+        const progressInterval = setInterval(() => {
+            currentProgress += Math.random() * 3 + 1; // Random increment 1-4
+            if (currentProgress > 95) currentProgress = 95;
+            updateProgress(currentProgress, `Finalizing ${Math.round(currentProgress)}...`);
+        }, 100); // Update every 100ms
+        
         // Upload phase (0-40%)
         if (fileObj.file) {
-            updateProgress(20, `Finalizing ${Math.round(20)}...`);
             result = await uploadFile(fileObj.file);
-            updateProgress(40, `Finalizing ${Math.round(40)}...`);
         } else {
             // File already uploaded from URL
             result = {
                 publicId: fileObj.publicId,
                 originalName: fileObj.name
             };
-            updateProgress(40, `Finalizing ${Math.round(40)}...`);
         }
         
         // Convert phase (40-95%)
-        updateProgress(60, `Finalizing ${Math.round(60)}...`);
         const convertedUrl = await convertFile(result.publicId, selectedFormat);
-        updateProgress(95, `Finalizing ${Math.round(95)}...`);
+        
+        // Stop the continuous progress and set to 100
+        clearInterval(progressInterval);
             
             results.push({
                 originalName: result.originalName,
@@ -525,7 +531,7 @@ async function convertFiles(startTime) {
             updateProgress(100, `Finalizing ${Math.round(100)}...`);
             
             // Small delay to show 100% before moving to next file
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 200));
             
         } catch (error) {
             console.error('Error converting file:', error);
