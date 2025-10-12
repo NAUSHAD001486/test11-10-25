@@ -633,14 +633,9 @@ function updateProgress(percentage, text) {
         progressText.textContent = text || `${counterValue}%`;
     }
     
-    // Add special styling for "Done" state
-    if (text === 'Done!') {
-        progressContainer.classList.add('done');
-        progressFill.style.background = 'linear-gradient(90deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.7))';
-    } else {
-        progressContainer.classList.remove('done');
-        progressFill.style.background = 'linear-gradient(90deg, rgba(124, 58, 237, 0.7), rgba(109, 40, 217, 0.7))';
-    }
+    // Keep same purple color throughout (no color change)
+    progressContainer.classList.remove('done');
+    progressFill.style.background = 'linear-gradient(90deg, rgba(124, 58, 237, 0.7), rgba(109, 40, 217, 0.7))';
 }
 
 function animateProgress(targetPercentage, text) {
