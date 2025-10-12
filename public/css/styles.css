@@ -193,14 +193,14 @@ body {
 /* File Source Dropdown */
 .file-source-dropdown {
     position: absolute;
-    top: calc(50% + 30px);
+    top: calc(50% + 20px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--background);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-xl);
-    padding: 8px 0;
+    padding: 0;
     min-width: 200px;
     max-width: calc(100% - 40px);
     z-index: 100;
@@ -224,6 +224,14 @@ body {
     transition: var(--transition);
     font-size: 14px;
     font-weight: 500;
+}
+
+.dropdown-item:first-child {
+    padding-top: 8px;
+}
+
+.dropdown-item:last-child {
+    padding-bottom: 8px;
 }
 
 .dropdown-item:hover {
