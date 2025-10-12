@@ -63,6 +63,9 @@ function initializeEventListeners() {
     uploadBox.addEventListener('dragleave', handleDragLeave);
     uploadBox.addEventListener('drop', handleDrop);
     
+    // Click anywhere in upload box to open file manager
+    uploadBox.addEventListener('click', handleUploadBoxClick);
+    
     // Convert button
     convertBtn.addEventListener('click', handleConvert);
     
@@ -197,6 +200,16 @@ function handleDrop(e) {
     
     const files = Array.from(e.dataTransfer.files);
     processFiles(files);
+}
+
+function handleUploadBoxClick(e) {
+    // Don't trigger if clicking on the button or dropdown
+    if (e.target.closest('.select-files-btn') || e.target.closest('.file-source-dropdown')) {
+        return;
+    }
+    
+    // Open file manager directly
+    fileInput.click();
 }
 
 // Lightweight file validation
