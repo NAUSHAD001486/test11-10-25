@@ -1,7 +1,9 @@
 // Global state
 let uploadedFiles = [];
+let convertedFiles = [];
 let selectedFormat = 'PNG';
 let isConverting = false;
+let isDownloaded = false;
 
 // Lightweight format validation
 const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
@@ -246,6 +248,13 @@ function processFiles(files) {
     
     if (validFiles.length === 0) return;
     
+    // Clear old files if there are converted files or if download was completed
+    console.log('Processing new files - convertedFiles length:', convertedFiles.length, 'isDownloaded:', isDownloaded);
+    if (convertedFiles.length > 0 || isDownloaded) {
+        console.log('Clearing old files before adding new ones');
+        clearAllFiles();
+    }
+    
     // Add valid files to state
     validFiles.forEach(file => {
         const fileId = generateFileId();
@@ -270,6 +279,41 @@ function processFiles(files) {
 
 function generateFileId() {
     return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+function clearAllFiles() {
+    console.log('Clearing all files - convertedFiles length:', convertedFiles.length, 'isDownloaded:', isDownloaded);
+    
+    // Clear all file arrays
+    uploadedFiles = [];
+    convertedFiles = [];
+    
+    // Reset states
+    isConverting = false;
+    isDownloaded = false;
+    
+    // Clear UI elements
+    fileListContainer.innerHTML = '';
+    fileListContainer.classList.remove('show');
+    
+    // Reset convert button
+    convertBtn.style.display = 'none';
+    convertBtn.classList.remove('download');
+    convertBtn.querySelector('.btn-text').textContent = 'Convert';
+    convertBtn.querySelector('.btn-text').style.display = 'block';
+    convertBtn.querySelector('.btn-loading').style.display = 'none';
+    
+    // Reset onclick handler (remove any custom handler)
+    convertBtn.onclick = null;
+    
+    // Hide output settings
+    outputSettings.classList.remove('show');
+    
+    // Hide progress bar
+    progressContainer.style.display = 'none';
+    
+    // Clear file input
+    fileInput.value = '';
 }
 
 function updateFileList() {
@@ -480,6 +524,7 @@ async function handleConvert() {
     
     try {
         const results = await convertFiles(startTime);
+        convertedFiles = results; // Store converted files for clearing logic
         showResults(results);
         // Conversion completed successfully!
     } catch (error) {
@@ -698,6 +743,7 @@ function animateProgress(targetPercentage, text) {
 }
 
 function showResults(results) {
+    console.log('showResults called with', results.length, 'results');
     // Update convert button to "Download All"
     convertBtn.querySelector('.btn-text').textContent = 'Download All';
     convertBtn.classList.add('download');
@@ -804,6 +850,9 @@ async function downloadFiles(results) {
         setTimeout(() => {
             URL.revokeObjectURL(blobUrl);
         }, 40);
+        
+        // Mark as downloaded for future file clearing
+        isDownloaded = true;
         
         // Show success message briefly
         if (results.length === 1) {
