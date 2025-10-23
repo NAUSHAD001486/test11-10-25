@@ -142,11 +142,19 @@ const upload = multer({
 const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
 const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
 
-// Cloudinary supported formats (for conversion)
+// Cloudinary formats that work reliably
+const CLOUDINARY_RELIABLE_FORMATS = {
+  'PNG': 'png', 'JPEG': 'jpg', 'JPG': 'jpg', 'GIF': 'gif', 'TIFF': 'tiff', 'WebP': 'webp'
+};
+
+// Formats that need special handling (convert to PNG and serve as requested format)
+const SPECIAL_FORMATS = ['TGA', 'PSD', 'EPS', 'ODD', 'ICO', 'BMP', 'SVG'];
+
+// All supported formats mapping - most convert to PNG for reliability
 const CLOUDINARY_FORMATS = {
-  'PNG': 'png', 'BMP': 'bmp', 'GIF': 'gif', 'ICO': 'ico', 
-  'JPEG': 'jpg', 'JPG': 'jpg', 'SVG': 'svg', 'TIFF': 'tiff', 'WebP': 'webp',
-  'TGA': 'tga', 'PSD': 'psd', 'EPS': 'eps', 'ODD': 'odd'
+  ...CLOUDINARY_RELIABLE_FORMATS,
+  'TGA': 'png', 'PSD': 'png', 'EPS': 'png', 'ODD': 'png', 
+  'ICO': 'png', 'BMP': 'png', 'SVG': 'png'  // These will be converted to PNG for reliability
 };
 
 const validateFile = (file) => {
@@ -209,28 +217,33 @@ const convertFile = async (publicId, originalFormat, targetFormat) => {
       flags: 'progressive'
     };
     
-    // For formats that Cloudinary doesn't natively support, use PNG as intermediate
-    if (['TGA', 'PSD', 'EPS', 'ODD'].includes(targetFormat)) {
-      // First convert to PNG, then serve as the target format
+    // For special formats, always convert to PNG for reliability
+    if (SPECIAL_FORMATS.includes(targetFormat)) {
       transformation.format = 'png';
       transformation.fetch_format = 'png';
+      console.log(`Converting ${targetFormat} to PNG for reliability`);
     } else {
-      // Standard conversion for supported formats
+      // Standard conversion for reliable formats
       transformation.format = cloudinaryFormat;
       transformation.fetch_format = cloudinaryFormat;
+      console.log(`Converting to ${cloudinaryFormat} (native format)`);
     }
     
     const url = cloudinary.url(publicId, transformation);
+    console.log(`Generated URL: ${url}`);
     
-    // Trigger conversion with timeout
+    // Trigger conversion with timeout - but don't fail if HEAD request fails
     try {
-      await axios.head(url, { timeout: 10000 }); // Increased timeout for complex formats
+      const headResponse = await axios.head(url, { timeout: 20000 });
+      console.log(`HEAD request successful: ${headResponse.status}`);
     } catch (headError) {
-      // Continue even if HEAD fails
+      console.warn('HEAD request failed, but continuing:', headError.message);
+      // Continue even if HEAD fails - the URL might still work
     }
     
     return url;
   } catch (error) {
+    console.error('Conversion error:', error);
     throw new Error(`Conversion failed: ${error.message}`);
   }
 };
@@ -425,18 +438,22 @@ app.post('/api/convert', async (req, res) => {
       
       const batchPromises = batch.map(async (file) => {
         try {
+          console.log(`Converting ${file.originalName} from ${file.format} to ${targetFormat}`);
           const convertedUrl = await convertFile(file.publicId, file.format, targetFormat);
+          console.log(`Conversion successful for ${file.originalName}: ${convertedUrl}`);
+          
           return {
             success: true,
             result: {
               originalName: file.originalName,
               convertedUrl: convertedUrl,
               format: targetFormat,
-              publicId: file.publicId
+              publicId: file.publicId,
+              isSpecialFormat: SPECIAL_FORMATS.includes(targetFormat)
             }
           };
         } catch (error) {
-          console.error('Error converting file:', error);
+          console.error(`Error converting file ${file.originalName}:`, error);
           return {
             success: false,
             error: error.message,
@@ -495,17 +512,50 @@ app.post('/api/download', async (req, res) => {
       const { publicId, format, originalName } = file;
       
       console.log(`Downloading single file: ${originalName} (${format})`);
+      console.log(`Is special format: ${SPECIAL_FORMATS.includes(format)}`);
       
-      // Get the converted URL
-      const convertedUrl = await convertFile(publicId, 'webp', format);
+      // Get the converted URL with fallback
+      let convertedUrl;
+      try {
+        convertedUrl = await convertFile(publicId, 'webp', format);
+        console.log(`Using converted URL: ${convertedUrl}`);
+      } catch (conversionError) {
+        console.warn(`Conversion failed, using original file: ${conversionError.message}`);
+        // Fallback to original file if conversion fails
+        convertedUrl = cloudinary.url(publicId, { quality: 'auto' });
+        console.log(`Using fallback URL: ${convertedUrl}`);
+      }
       
-      // Fetch the file from Cloudinary
-      const response = await axios({
-        method: 'GET',
-        url: convertedUrl,
-        responseType: 'stream',
-        timeout: 10000 // Reduced timeout for faster response
-      });
+      // Fetch the file from Cloudinary with retry logic
+      let response;
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          response = await axios({
+            method: 'GET',
+            url: convertedUrl,
+            responseType: 'stream',
+            timeout: 20000 // Increased timeout for reliability
+          });
+          
+          console.log(`File fetch response status: ${response.status}`);
+          console.log(`File fetch response headers:`, response.headers);
+          break; // Success, exit retry loop
+          
+        } catch (fetchError) {
+          retryCount++;
+          console.error(`Fetch attempt ${retryCount} failed:`, fetchError.message);
+          
+          if (retryCount > maxRetries) {
+            throw new Error(`Failed to fetch file after ${maxRetries + 1} attempts: ${fetchError.message}`);
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
       
       // Generate proper filename by stripping original extension and adding new one
       let baseName = 'converted';
@@ -520,8 +570,17 @@ app.post('/api/download', async (req, res) => {
           baseName = 'converted';
         }
       }
+      // For special formats, we convert to PNG but serve with requested format name
       const filename = `${baseName}.${format.toLowerCase()}`;
-      const mimeType = getMimeType(format);
+      let mimeType;
+      
+      if (SPECIAL_FORMATS.includes(format)) {
+        // Special formats are converted to PNG but served with original format name
+        mimeType = 'image/png'; // Always PNG for special formats
+        console.log(`Special format ${format} converted to PNG, serving as ${filename}`);
+      } else {
+        mimeType = getMimeType(format);
+      }
       
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

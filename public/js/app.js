@@ -342,6 +342,7 @@ function showFileSettings(fileId) {
 
 function updateUI() {
     const hasFiles = uploadedFiles.length > 0;
+    const isFirstSelection = hasFiles && uploadedFiles.length === 1;
     
     outputSettings.classList.toggle('show', hasFiles);
     convertBtn.style.display = hasFiles ? 'block' : 'none';
@@ -350,6 +351,25 @@ function updateUI() {
     if (hasFiles) {
         convertBtn.querySelector('.btn-text').textContent = 'Convert';
         convertBtn.classList.remove('download');
+        
+        // Smooth scroll to convert button only on first selection
+        if (isFirstSelection) {
+            setTimeout(() => {
+                // Get button position and scroll just enough to show it
+                const buttonRect = convertBtn.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // If button is below viewport, scroll just enough to show it
+                if (buttonRect.bottom > viewportHeight) {
+                    const scrollAmount = buttonRect.bottom - viewportHeight + 50; // 50px padding
+                    
+                    window.scrollBy({
+                        top: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 200); // Slightly longer delay for smoother effect
+        }
     }
 }
 
