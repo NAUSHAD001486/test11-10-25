@@ -861,20 +861,22 @@ select:focus-visible {
 .guide-steps {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 15px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .guide-step {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     gap: 15px;
     padding: 0;
     background: transparent;
     border: none;
     box-shadow: none;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .step-number {
