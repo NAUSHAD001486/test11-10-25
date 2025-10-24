@@ -180,7 +180,8 @@ const uploadToCloudinary = async (filePath, publicId) => {
       resource_type: 'auto',
       folder: 'love-u-convert',
       timeout: 30000,
-      chunk_size: 6000000 // 6MB chunks for speed
+      chunk_size: 6000000, // 6MB chunks for speed
+      tags: ['auto-delete-2h'] // Tag for auto-delete cleanup
     });
     return result;
   } catch (error) {
@@ -724,8 +725,62 @@ const cleanupFiles = async () => {
   setTimeout(cleanupFiles, 2 * 60 * 60 * 1000);
 };
 
-// Start cleanup cycle
+// Cloudinary cleanup function
+const cleanupCloudinaryFiles = async () => {
+  try {
+    console.log('Starting Cloudinary cleanup...');
+    
+    // Get all resources with auto-delete tag
+    const result = await cloudinary.api.resources_by_tag('auto-delete-2h', {
+      resource_type: 'auto',
+      max_results: 500
+    });
+    
+    const now = Date.now();
+    const maxAge = 2 * 60 * 60 * 1000; // 2 hours
+    const filesToDelete = [];
+    
+    // Check each file's creation time
+    for (const resource of result.resources) {
+      const createdAt = new Date(resource.created_at).getTime();
+      if (now - createdAt > maxAge) {
+        filesToDelete.push(resource.public_id);
+      }
+    }
+    
+    // Delete old files in batches
+    if (filesToDelete.length > 0) {
+      console.log(`Deleting ${filesToDelete.length} old Cloudinary files...`);
+      
+      // Delete in batches of 10 to avoid rate limits
+      for (let i = 0; i < filesToDelete.length; i += 10) {
+        const batch = filesToDelete.slice(i, i + 10);
+        try {
+          await cloudinary.api.delete_resources(batch, {
+            resource_type: 'auto'
+          });
+          console.log(`Deleted batch of ${batch.length} files`);
+        } catch (deleteError) {
+          console.error('Error deleting Cloudinary batch:', deleteError);
+        }
+        
+        // Small delay between batches to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log('Cloudinary cleanup completed');
+  } catch (error) {
+    console.error('Cloudinary cleanup error:', error);
+  }
+  
+  // Schedule next Cloudinary cleanup in 2 hours
+  setTimeout(cleanupCloudinaryFiles, 2 * 60 * 60 * 1000);
+};
+
+// Start cleanup cycles
 setTimeout(cleanupFiles, 2 * 60 * 60 * 1000);
+setTimeout(cleanupCloudinaryFiles, 2 * 60 * 60 * 1000);
 
 // Reset daily usage (runs every day at midnight)
 cron.schedule('0 0 * * *', () => {
