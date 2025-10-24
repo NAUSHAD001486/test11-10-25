@@ -1056,7 +1056,6 @@ select:focus-visible {
     background: var(--background);
     padding: 60px 0;
     margin-top: 40px;
-    border-top: 1px solid var(--border-color);
 }
 
 .faq-title {
