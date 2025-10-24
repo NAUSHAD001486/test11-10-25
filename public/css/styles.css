@@ -829,10 +829,10 @@ select:focus-visible {
 
 /* Guide Section Styles */
 .guide-section {
-    margin-top: 60px;
-    padding: 40px 0;
+    margin-top: 50px;
+    padding: 30px 0;
     background: var(--background-secondary);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: var(--shadow-sm);
 }
 
@@ -861,16 +861,16 @@ select:focus-visible {
 .guide-steps {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
 }
 
 .guide-step {
     display: flex;
     align-items: flex-start;
-    gap: 20px;
-    padding: 25px;
+    gap: 15px;
+    padding: 18px;
     background: var(--background);
-    border-radius: 12px;
+    border-radius: 8px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
 }
@@ -895,25 +895,21 @@ select:focus-visible {
 }
 
 .step-content h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
 }
 
 .step-content p {
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: 8px;
+    color: var(--text-light);
+    line-height: 1.5;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
 }
 
 .step-content p:last-child {
     margin-bottom: 0;
-}
-
-.step-content strong {
-    color: var(--text-primary);
-    font-weight: 600;
 }
 
 /* Responsive Design for Guide */
