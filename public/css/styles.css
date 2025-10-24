@@ -966,21 +966,13 @@ select:focus-visible {
     
 }
 
-/* Features Section */
-.features-section {
-    margin-top: 20px;
-    padding: 30px 0;
-    background: var(--background-secondary);
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-}
-
-.features-container {
+/* Features Container within Guide Section */
+.guide-content .features-container {
     display: flex;
     flex-direction: row;
     gap: 30px;
     max-width: 1000px;
-    margin: 0 auto;
+    margin: 40px auto 0;
     padding: 0 20px;
 }
 
@@ -1017,12 +1009,13 @@ select:focus-visible {
     margin: 0;
 }
 
-/* Responsive Design for Features */
+/* Responsive Design for Features within Guide */
 @media (max-width: 768px) {
-    .features-container {
+    .guide-content .features-container {
         flex-direction: column;
         gap: 20px;
         padding: 0 15px;
+        margin-top: 30px;
     }
     
     .feature-item {
@@ -1045,9 +1038,8 @@ select:focus-visible {
 }
 
 @media (max-width: 480px) {
-    .features-section {
-        margin-top: 30px;
-        padding: 30px 0;
+    .guide-content .features-container {
+        margin-top: 25px;
     }
     
     .feature-item {
@@ -1074,11 +1066,6 @@ select:focus-visible {
         background: white;
         box-shadow: none;
         border: 1px solid #ccc;
-    }
-    
-    .features-section {
-        background: white;
-        box-shadow: none;
     }
     
     .feature-item {
