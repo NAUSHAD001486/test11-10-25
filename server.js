@@ -764,8 +764,7 @@ const cleanupCloudinaryFiles = async () => {
           console.error('Error deleting Cloudinary batch:', deleteError);
         }
         
-        // Small delay between batches to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // No delay for faster deletion
       }
     }
     
