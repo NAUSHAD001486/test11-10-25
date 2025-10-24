@@ -860,24 +860,21 @@ select:focus-visible {
 
 .guide-steps {
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
 .guide-step {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 15px;
     padding: 0;
     background: transparent;
     border: none;
     box-shadow: none;
-    flex: 1;
-    max-width: 200px;
+    justify-content: center;
 }
 
 .step-number {
@@ -896,7 +893,7 @@ select:focus-visible {
 }
 
 .step-content {
-    text-align: center;
+    text-align: left;
 }
 
 
@@ -940,16 +937,12 @@ select:focus-visible {
     }
     
     .guide-steps {
-        flex-direction: column;
-        gap: 15px;
+        gap: 12px;
     }
     
     .guide-step {
-        flex-direction: row;
-        text-align: left;
-        gap: 15px;
+        gap: 12px;
         padding: 0;
-        max-width: none;
     }
     
     .step-number {
