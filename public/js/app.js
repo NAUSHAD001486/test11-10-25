@@ -744,8 +744,14 @@ function animateProgress(targetPercentage, text) {
 
 function showResults(results) {
     console.log('showResults called with', results.length, 'results');
-    // Update convert button to "Download All"
-    convertBtn.querySelector('.btn-text').textContent = 'Download All';
+    
+    // Update convert button text based on number of files
+    if (results.length === 1) {
+        convertBtn.querySelector('.btn-text').textContent = 'Download';
+    } else {
+        convertBtn.querySelector('.btn-text').textContent = 'Download All';
+    }
+    
     convertBtn.classList.add('download');
     convertBtn.onclick = () => downloadAllFiles(results);
 }
