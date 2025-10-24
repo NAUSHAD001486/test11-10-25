@@ -861,18 +861,18 @@ select:focus-visible {
 .guide-steps {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    align-items: center;
+    gap: 15px;
 }
 
 .guide-step {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 15px;
-    padding: 18px;
-    background: var(--background);
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .step-number {
@@ -892,6 +892,14 @@ select:focus-visible {
 
 .step-content {
     flex: 1;
+    text-align: left;
+}
+
+.step-arrow {
+    font-size: 1.5rem;
+    color: var(--text-light);
+    font-weight: bold;
+    margin: 5px 0;
 }
 
 .step-content h3 {
@@ -934,14 +942,14 @@ select:focus-visible {
     }
     
     .guide-steps {
-        gap: 20px;
+        gap: 15px;
     }
     
     .guide-step {
         flex-direction: column;
         text-align: center;
-        gap: 15px;
-        padding: 20px;
+        gap: 10px;
+        padding: 0;
     }
     
     .step-number {
@@ -966,7 +974,11 @@ select:focus-visible {
     }
     
     .guide-step {
-        padding: 15px;
+        padding: 0;
+    }
+    
+    .step-arrow {
+        font-size: 1.2rem;
     }
 }
 
