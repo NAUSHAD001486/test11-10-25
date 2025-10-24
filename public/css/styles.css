@@ -968,9 +968,11 @@ select:focus-visible {
 
 /* Features Section */
 .features-section {
-    margin-top: 50px;
-    padding: 40px 0;
-    background: var(--background);
+    margin-top: 20px;
+    padding: 30px 0;
+    background: var(--background-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
 }
 
 .features-container {
@@ -989,8 +991,8 @@ select:focus-visible {
     align-items: center;
     text-align: center;
     padding: 20px;
-    background: var(--background-secondary);
-    border-radius: 12px;
+    background: var(--background);
+    border-radius: 8px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
 }
