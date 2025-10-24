@@ -862,7 +862,7 @@ select:focus-visible {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
 }
 
 .guide-step {
@@ -896,10 +896,10 @@ select:focus-visible {
 }
 
 .step-arrow {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: var(--text-light);
     font-weight: bold;
-    margin: 2px 0;
+    margin: 0;
 }
 
 .step-content h3 {
@@ -942,7 +942,7 @@ select:focus-visible {
     }
     
     .guide-steps {
-        gap: 8px;
+        gap: 2px;
     }
     
     .guide-step {
@@ -978,7 +978,7 @@ select:focus-visible {
     }
     
     .step-arrow {
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
 }
 
