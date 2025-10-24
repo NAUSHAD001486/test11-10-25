@@ -1064,7 +1064,9 @@ select:focus-visible {
     font-weight: 700;
     color: var(--text-primary);
     text-align: center;
-    margin-bottom: 40px;
+    margin: 0 auto 40px auto;
+    max-width: 1000px;
+    padding: 0 20px;
 }
 
 .faq-container {
@@ -1144,7 +1146,8 @@ select:focus-visible {
     
     .faq-title {
         font-size: 1.8rem;
-        margin-bottom: 30px;
+        margin: 0 auto 30px auto;
+        padding: 0 15px;
     }
     
     .faq-container {
@@ -1171,6 +1174,7 @@ select:focus-visible {
 @media (max-width: 480px) {
     .faq-title {
         font-size: 1.5rem;
+        padding: 0 10px;
     }
     
     .faq-question h3 {
