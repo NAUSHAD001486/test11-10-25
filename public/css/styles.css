@@ -826,6 +826,164 @@ select:focus-visible {
     }
 }
 
+/* Guide Section Styles */
+.guide-section {
+    margin-top: 60px;
+    padding: 40px 0;
+    background: var(--background-secondary);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.guide-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.guide-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.guide-intro {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 40px;
+    line-height: 1.6;
+}
+
+.guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.guide-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 25px;
+    background: var(--background);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.guide-step:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-md);
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.step-content p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.step-content p:last-child {
+    margin-bottom: 0;
+}
+
+.step-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Responsive Design for Guide */
+@media (max-width: 768px) {
+    .guide-section {
+        margin-top: 40px;
+        padding: 30px 0;
+    }
+    
+    .guide-title {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+    
+    .guide-content {
+        padding: 0 15px;
+    }
+    
+    .guide-intro {
+        font-size: 1rem;
+        margin-bottom: 30px;
+    }
+    
+    .guide-steps {
+        gap: 20px;
+    }
+    
+    .guide-step {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+        padding: 20px;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .step-content h3 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .guide-section {
+        margin-top: 30px;
+        padding: 20px 0;
+    }
+    
+    .guide-title {
+        font-size: 1.3rem;
+    }
+    
+    .guide-step {
+        padding: 15px;
+    }
+}
+
 /* Print styles */
 @media print {
     .header,
@@ -835,5 +993,11 @@ select:focus-visible {
     
     .main-content {
         padding-top: 0;
+    }
+    
+    .guide-section {
+        background: white;
+        box-shadow: none;
+        border: 1px solid #ccc;
     }
 }
