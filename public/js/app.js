@@ -1,3 +1,19 @@
+// Google Analytics tracking functions
+function trackEvent(eventName, parameters = {}) {
+    if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, parameters);
+    }
+}
+
+function trackPageView(pageName) {
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'page_view', {
+            page_title: pageName,
+            page_location: window.location.href
+        });
+    }
+}
+
 // Global state
 let uploadedFiles = [];
 let convertedFiles = [];
@@ -32,6 +48,9 @@ const modalClose = document.getElementById('modalClose');
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
+    // Track page view
+    trackPageView('Love U Convert - WebP to PNG Converter');
+    
     initializeEventListeners();
     initializeScrollHandler();
     initializeServiceWorker();
@@ -231,6 +250,12 @@ function validateFile(file) {
 function processFiles(files) {
     const validFiles = [];
     const errors = [];
+    
+    // Track file upload attempt
+    trackEvent('file_upload_attempt', {
+        file_count: files.length,
+        event_category: 'engagement'
+    });
     
     files.forEach(file => {
         try {
@@ -513,6 +538,13 @@ async function uploadFromUrl(url) {
 async function handleConvert() {
     if (isConverting || uploadedFiles.length === 0) return;
     
+    // Track conversion start
+    trackEvent('conversion_start', {
+        file_count: uploadedFiles.length,
+        output_format: selectedFormat,
+        event_category: 'conversion'
+    });
+    
     isConverting = true;
     convertBtn.disabled = true;
     convertBtn.querySelector('.btn-text').style.display = 'none';
@@ -760,6 +792,13 @@ function showResults(results) {
 async function downloadFiles(results) {
     try {
         console.log(`Starting download for ${results.length} file(s)`);
+        
+        // Track download start
+        trackEvent('download_start', {
+            file_count: results.length,
+            download_type: results.length === 1 ? 'single_file' : 'zip_archive',
+            event_category: 'conversion'
+        });
         
         // Add click animation class
         convertBtn.classList.add('clicked');
