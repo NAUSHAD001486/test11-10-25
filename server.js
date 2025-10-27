@@ -102,6 +102,16 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static files
 app.use(express.static('public'));
 
+// Privacy Policy routes
+app.get('/privacy-policy.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
+});
+
+// Alternative route for /Privacy-Policy
+app.get('/Privacy-Policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
+});
+
 // Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
