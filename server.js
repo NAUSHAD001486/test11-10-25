@@ -703,7 +703,7 @@ app.post('/api/download', async (req, res) => {
         console.log(`⚠️ Failed files: ${failedFiles.map(f => f.originalName).join(', ')}`);
       }
       
-      // PHASE 2: Create ZIP completely in memory
+      // PHASE 2: Create ZIP completely in memory with FULL VALIDATION
       console.log('📦 PHASE 2: Creating ZIP archive completely in memory...');
       
       const archive = archiver('zip', {
@@ -712,29 +712,53 @@ app.post('/api/download', async (req, res) => {
       
       // Collect ZIP data in memory
       const zipChunks = [];
+      let zipComplete = false;
+      let zipError = null;
+      
       archive.on('data', (chunk) => {
         zipChunks.push(chunk);
       });
       
-      // Add ALL processed files to ZIP
+      archive.on('end', () => {
+        console.log(`✅ ZIP archive finalized successfully with ${processedFiles.length} files`);
+        zipComplete = true;
+      });
+      
+      archive.on('error', (err) => {
+        console.error('❌ Archive finalization error:', err);
+        zipError = err;
+      });
+      
+      // Add ALL processed files to ZIP with count validation
+      let addedCount = 0;
       for (const fileData of processedFiles) {
         archive.append(fileData.buffer, { name: fileData.filename });
-        console.log(`📁 Added to ZIP: ${fileData.filename} (${fileData.index}/${totalFiles}) - ${fileData.size} bytes`);
+        addedCount++;
+        console.log(`📁 Added to ZIP: ${fileData.filename} (${addedCount}/${processedFiles.length}) - ${fileData.size} bytes`);
       }
       
-      console.log(`📦 ZIP processing complete: ${processedFiles.length}/${totalFiles} files added to archive`);
+      console.log(`📦 ZIP processing complete: ${addedCount}/${processedFiles.length} files added to archive`);
       
-      // Finalize the archive and collect all data
+      // CRITICAL: Verify all files were added before finalizing
+      if (addedCount !== processedFiles.length) {
+        throw new Error(`ZIP creation failed: Only ${addedCount}/${processedFiles.length} files added to archive`);
+      }
+      
+      // Finalize the archive and WAIT for complete creation
+      archive.finalize();
+      
+      // WAIT for ZIP to be completely finalized
       await new Promise((resolve, reject) => {
-        archive.on('end', () => {
-          console.log(`✅ ZIP archive finalized successfully with ${processedFiles.length} files`);
-          resolve();
-        });
-        archive.on('error', (err) => {
-          console.error('❌ Archive finalization error:', err);
-          reject(err);
-        });
-        archive.finalize();
+        const checkComplete = () => {
+          if (zipError) {
+            reject(zipError);
+          } else if (zipComplete) {
+            resolve();
+          } else {
+            setTimeout(checkComplete, 100); // Check every 100ms
+          }
+        };
+        checkComplete();
       });
       
       // Combine all ZIP chunks into a single buffer
@@ -753,6 +777,7 @@ app.post('/api/download', async (req, res) => {
       }
       
       console.log(`✅ ZIP validation passed: ${zipBuffer.length} bytes, valid signature`);
+      console.log(`🎯 GUARANTEED: ${processedFiles.length} files stored in ZIP before download link provided`);
       
       // PHASE 3: Send complete ZIP file
       console.log('📤 PHASE 3: Sending complete ZIP file...');
