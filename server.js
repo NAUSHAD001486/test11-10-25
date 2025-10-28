@@ -603,49 +603,60 @@ app.post('/api/download', async (req, res) => {
       console.log('Response sent at', Date.now());
       
     } else {
-      // Multiple files - create ZIP bundle
-      console.log(`Creating ZIP bundle for ${files.length} files`);
+      // Multiple files - create ZIP bundle with COMPLETE rewrite
+      console.log(`🚀 COMPLETE ZIP REWRITE: Creating ZIP bundle for ${files.length} files`);
+      console.log(`📋 Files to process: ${files.map(f => f.originalName).join(', ')}`);
       
-      // Set headers for ZIP download
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename="converted_files.zip"');
-      res.setHeader('X-File-Count', files.length.toString());
+      const totalFiles = files.length;
+      const processedFiles = [];
+      const failedFiles = [];
       
-      // Create ZIP archive
-      const archive = archiver('zip', {
-        zlib: { level: 9 } // Maximum compression
-      });
+      // PHASE 1: Process ALL files first and store in memory
+      console.log('📦 PHASE 1: Processing ALL files and storing in memory...');
       
-      // Handle archive events
-      archive.on('error', (err) => {
-        console.error('Archive error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to create ZIP archive' });
-        }
-      });
-      
-      // Pipe archive to response
-      archive.pipe(res);
-      console.log('ZIP response sent at', Date.now());
-      
-      // Add each file to the ZIP
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const { publicId, format, originalName } = file;
         
+        console.log(`🔄 Processing file ${i + 1}/${totalFiles}: ${originalName} (${format})`);
+        
         try {
-          console.log(`Adding to ZIP: ${originalName} (${format})`);
-          
           // Get the converted URL
           const convertedUrl = await convertFile(publicId, 'webp', format);
+          console.log(`✅ Generated URL for ${originalName}`);
           
-          // Fetch the file from Cloudinary
-          const fileResponse = await axios({
-            method: 'GET',
-            url: convertedUrl,
-            responseType: 'stream',
-            timeout: 10000 // Reduced timeout for faster response
-          });
+          // Fetch the file from Cloudinary with enhanced retry logic
+          let fileResponse;
+          let retryCount = 0;
+          const maxRetries = 5;
+          
+          while (retryCount <= maxRetries) {
+            try {
+              fileResponse = await axios({
+                method: 'GET',
+                url: convertedUrl,
+                responseType: 'arraybuffer',
+                timeout: 60000, // 60 seconds timeout
+                maxRedirects: 10,
+                validateStatus: function (status) {
+                  return status >= 200 && status < 300;
+                }
+              });
+              break; // Success, exit retry loop
+            } catch (fetchError) {
+              retryCount++;
+              console.error(`❌ Fetch attempt ${retryCount}/${maxRetries + 1} failed for ${originalName}:`, fetchError.message);
+              
+              if (retryCount > maxRetries) {
+                throw new Error(`Failed to fetch file after ${maxRetries + 1} attempts: ${fetchError.message}`);
+              }
+              
+              // Exponential backoff with jitter
+              const delay = Math.min(2000 * Math.pow(2, retryCount) + Math.random() * 2000, 15000);
+              console.log(`⏳ Waiting ${delay}ms before retry ${retryCount + 1}...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
           
           // Create filename for ZIP entry by stripping original extension
           let baseName = `file_${i + 1}`;
@@ -653,26 +664,102 @@ app.post('/api/download', async (req, res) => {
             try {
               const ext = path.extname(originalName);
               baseName = ext ? path.basename(originalName, ext) : path.basename(originalName);
-              // Handle edge case where basename might be empty
               if (!baseName) baseName = `file_${i + 1}`;
             } catch (error) {
-              console.warn('Error processing ZIP filename:', error.message);
+              console.warn('⚠️ Error processing ZIP filename:', error.message);
               baseName = `file_${i + 1}`;
             }
           }
           const zipFilename = `${baseName}.${format.toLowerCase()}`;
           
-          // Add file to archive
-          archive.append(fileResponse.data, { name: zipFilename });
+          // Store file data with validation
+          const fileBuffer = Buffer.from(fileResponse.data);
+          if (fileBuffer.length === 0) {
+            throw new Error(`File ${originalName} is empty`);
+          }
+          
+          processedFiles.push({
+            buffer: fileBuffer,
+            filename: zipFilename,
+            index: i + 1,
+            originalName: originalName,
+            size: fileBuffer.length
+          });
+          
+          console.log(`✅ Successfully processed ${originalName} (${i + 1}/${totalFiles}) - Size: ${fileBuffer.length} bytes`);
           
         } catch (fileError) {
-          console.error(`Error adding file ${originalName} to ZIP:`, fileError);
-          // Continue with other files
+          console.error(`❌ Error processing file ${originalName}:`, fileError);
+          failedFiles.push({
+            originalName: originalName,
+            error: fileError.message,
+            index: i + 1
+          });
         }
       }
       
-      // Finalize the archive
-      await archive.finalize();
+      console.log(`📊 PHASE 1 COMPLETE: ${processedFiles.length}/${totalFiles} files processed successfully`);
+      if (failedFiles.length > 0) {
+        console.log(`⚠️ Failed files: ${failedFiles.map(f => f.originalName).join(', ')}`);
+      }
+      
+      // PHASE 2: Create ZIP completely in memory
+      console.log('📦 PHASE 2: Creating ZIP archive completely in memory...');
+      
+      const archive = archiver('zip', {
+        zlib: { level: 6 } // Balanced compression for speed
+      });
+      
+      // Collect ZIP data in memory
+      const zipChunks = [];
+      archive.on('data', (chunk) => {
+        zipChunks.push(chunk);
+      });
+      
+      // Add ALL processed files to ZIP
+      for (const fileData of processedFiles) {
+        archive.append(fileData.buffer, { name: fileData.filename });
+        console.log(`📁 Added to ZIP: ${fileData.filename} (${fileData.index}/${totalFiles}) - ${fileData.size} bytes`);
+      }
+      
+      console.log(`📦 ZIP processing complete: ${processedFiles.length}/${totalFiles} files added to archive`);
+      
+      // Finalize the archive and collect all data
+      await new Promise((resolve, reject) => {
+        archive.on('end', () => {
+          console.log(`✅ ZIP archive finalized successfully with ${processedFiles.length} files`);
+          resolve();
+        });
+        archive.on('error', (err) => {
+          console.error('❌ Archive finalization error:', err);
+          reject(err);
+        });
+        archive.finalize();
+      });
+      
+      // Combine all ZIP chunks into a single buffer
+      const zipBuffer = Buffer.concat(zipChunks);
+      console.log(`📦 ZIP created in memory: ${zipBuffer.length} bytes`);
+      
+      // PHASE 3: Send complete ZIP file
+      console.log('📤 PHASE 3: Sending complete ZIP file...');
+      
+      // Set headers for ZIP download
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="converted_files.zip"');
+      res.setHeader('Content-Length', zipBuffer.length.toString());
+      res.setHeader('X-File-Count', processedFiles.length.toString());
+      res.setHeader('X-Total-Files', totalFiles.toString());
+      res.setHeader('X-Success-Count', processedFiles.length.toString());
+      res.setHeader('X-Failed-Count', failedFiles.length.toString());
+      
+      // Send the complete ZIP file
+      res.send(zipBuffer);
+      console.log(`🎉 ZIP file sent successfully with ${processedFiles.length}/${totalFiles} files at`, Date.now());
+      
+      if (failedFiles.length > 0) {
+        console.log(`⚠️ Note: ${failedFiles.length} files failed to process and were excluded from ZIP`);
+      }
     }
     
   } catch (error) {
