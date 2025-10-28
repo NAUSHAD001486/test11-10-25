@@ -741,17 +741,35 @@ app.post('/api/download', async (req, res) => {
       const zipBuffer = Buffer.concat(zipChunks);
       console.log(`📦 ZIP created in memory: ${zipBuffer.length} bytes`);
       
+      // FINAL VALIDATION: Ensure ZIP buffer is valid and complete
+      if (zipBuffer.length === 0) {
+        throw new Error('ZIP buffer is empty - archive creation failed');
+      }
+      
+      // Validate ZIP file signature (PK header)
+      const zipSignature = zipBuffer.slice(0, 2);
+      if (zipSignature[0] !== 0x50 || zipSignature[1] !== 0x4B) {
+        throw new Error('Invalid ZIP file signature - archive corrupted');
+      }
+      
+      console.log(`✅ ZIP validation passed: ${zipBuffer.length} bytes, valid signature`);
+      
       // PHASE 3: Send complete ZIP file
       console.log('📤 PHASE 3: Sending complete ZIP file...');
       
-      // Set headers for ZIP download
+      // Set headers for ZIP download with cache-busting
       res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename="converted_files.zip"');
+      res.setHeader('Content-Disposition', `attachment; filename="converted_files_${Date.now()}.zip"`);
       res.setHeader('Content-Length', zipBuffer.length.toString());
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.setHeader('X-File-Count', processedFiles.length.toString());
       res.setHeader('X-Total-Files', totalFiles.toString());
       res.setHeader('X-Success-Count', processedFiles.length.toString());
       res.setHeader('X-Failed-Count', failedFiles.length.toString());
+      res.setHeader('X-ZIP-Size', zipBuffer.length.toString());
+      res.setHeader('X-Timestamp', Date.now().toString());
       
       // Send the complete ZIP file
       res.send(zipBuffer);
