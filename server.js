@@ -673,7 +673,8 @@ app.post('/api/download', async (req, res) => {
             const buf = Buffer.from(resp.data);
             // Validate buffer content (magic bytes/size) for the target ext
             const ext = (f.origExt || '.png').slice(1);
-            if (!isLikelyValidImage(buf, ext)) throw new Error('File buffer failed validation');
+            const validateExt = (f.format && SPECIAL_FORMATS.includes(String(f.format).toUpperCase())) ? 'png' : ext;
+            if (!isLikelyValidImage(buf, validateExt)) throw new Error('File buffer failed validation');
             return { zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName };
           } catch (e) { lastErr = e; if (i<2) await new Promise(r=>setTimeout(r,200)); }
         }
@@ -837,7 +838,8 @@ async function zipJobWorker(jobId) {
           const buf = Buffer.from(resp.data);
           // Buffer validation
           const ext = (f.origExt || '.png').slice(1);
-          if (!isLikelyValidImage(buf, ext)) throw new Error('File buffer failed validation');
+          const validateExt = (f.format && SPECIAL_FORMATS.includes(String(f.format).toUpperCase())) ? 'png' : ext;
+          if (!isLikelyValidImage(buf, validateExt)) throw new Error('File buffer failed validation');
           got.push({ zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName });
           break;
         } catch (e) { lastErr = e; if (i<2) await new Promise(r=>setTimeout(r,200)); }
