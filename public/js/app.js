@@ -803,18 +803,12 @@ async function downloadFiles(results) {
         // Add click animation class
         convertBtn.classList.add('clicked');
         
-        // Disable button during download and show loading spinner for 2 seconds
+        // Disable button during preparation and show loading spinner
         convertBtn.disabled = true;
         convertBtn.querySelector('.btn-text').style.display = 'none';
         convertBtn.querySelector('.btn-loading').style.display = 'flex';
         // Hide progress bar during download
         progressContainer.style.display = 'none';
-        
-        // Show loading spinner for exactly 1 second
-        setTimeout(() => {
-            convertBtn.querySelector('.btn-text').style.display = 'block';
-            convertBtn.querySelector('.btn-loading').style.display = 'none';
-        }, 1000);
         
         // Prepare files data for backend
         const files = results.map(result => ({
@@ -859,33 +853,18 @@ async function downloadFiles(results) {
         // Create object URL from blob
         const blobUrl = URL.createObjectURL(blob);
         
+        // Stop spinner NOW that the file is ready to download
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
+        convertBtn.querySelector('.btn-text').style.display = 'block';
+        convertBtn.disabled = false;
+
         // Create download link
         const link = document.createElement('a');
         link.href = blobUrl;
         link.download = filename;
         link.style.display = 'none';
         
-        // Track download completion
-        let downloadStarted = false;
-        
-        link.addEventListener('click', () => {
-            downloadStarted = true;
-            // Reset button state immediately when download starts
-            setTimeout(() => {
-                if (downloadStarted) {
-                    convertBtn.disabled = false;
-                    // Don't change text/spinner here - let 2-second timeout handle it
-                }
-            }, 80); // Reduced delay to ensure download starts
-        });
-        
-        // Fallback: Reset button after a short timeout regardless
-        setTimeout(() => {
-            if (downloadStarted) {
-                convertBtn.disabled = false;
-                // Don't change text/spinner here - let 2-second timeout handle it
-            }
-        }, 400); // Reduced maximum processing state
+        // No extra timers; browser shows native download progress
         
         // Add to DOM, click, and remove immediately
         document.body.appendChild(link);
