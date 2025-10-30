@@ -81,7 +81,7 @@ app.use(helmet({
   }
 }));
 
-// Rate limiting - Allow 2GB usage per IP per day
+// Rate limiting - Apply ONLY to API routes; keep site always browsable
 const limiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 1000, // Allow 1000 requests per day (should be enough for 2GB)
@@ -94,11 +94,16 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for static files and health checks
-    return req.path === '/health' || req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/icons/');
+    // Skip rate limiting for non-API routes and health checks so the site never crashes
+    if (req.path === '/health') return true;
+    // Allow all non-API paths (serving HTML, assets, etc.)
+    if (!req.path.startsWith('/api')) return true;
+    // Allow static asset folders under API if any (defensive)
+    return req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/icons/') || req.path.startsWith('/images/');
   }
 });
-app.use(limiter);
+// Apply limiter only for /api/* requests
+app.use('/api', limiter);
 
 // Custom usage tracking middleware
 const trackUsage = (req, res, next) => {
