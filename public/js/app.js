@@ -57,6 +57,19 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeFAQ();
 });
 
+// Daily limit check
+async function isDailyLimitReached() {
+    try {
+        const res = await fetch('/api/usage', { cache: 'no-store' });
+        if (!res.ok) return false; // fallthrough; don't block if unknown
+        const data = await res.json();
+        const pct = Number(data.percentage || 0);
+        return pct >= 100;
+    } catch {
+        return false;
+    }
+}
+
 // Event listeners
 function initializeEventListeners() {
     // File source dropdown
@@ -506,6 +519,10 @@ function isValidImageUrl(url) {
 
 async function uploadFromUrl(url) {
     try {
+        // Check limit before uploading from URL
+        if (await isDailyLimitReached()) {
+            throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
+        }
         const response = await fetch('/api/upload/url', {
             method: 'POST',
             headers: {
@@ -515,6 +532,9 @@ async function uploadFromUrl(url) {
         });
         
         if (!response.ok) {
+            if (response.status === 429) {
+                throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
+            }
             const error = await response.json();
             throw new Error(error.error || 'Upload failed');
         }
@@ -537,6 +557,11 @@ async function uploadFromUrl(url) {
 // Convert files
 async function handleConvert() {
     if (isConverting || uploadedFiles.length === 0) return;
+    // Abort early if daily limit reached
+    if (await isDailyLimitReached()) {
+        alert('Daily limit reached (2GB). Please try again tomorrow.');
+        return;
+    }
     
     // Track conversion start
     trackEvent('conversion_start', {
@@ -665,6 +690,10 @@ async function convertFiles(startTime) {
 }
 
 async function uploadFile(file) {
+    // Check limit before uploading from device
+    if (await isDailyLimitReached()) {
+        throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
+    }
     const formData = new FormData();
     formData.append('files', file);
     
@@ -674,6 +703,10 @@ async function uploadFile(file) {
     });
     
     if (!response.ok) {
+        if (response.status === 429) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Daily limit reached (2GB). Please try again tomorrow.');
+        }
         const error = await response.json();
         throw new Error(error.error || 'Upload failed');
     }
@@ -701,6 +734,10 @@ async function convertFile(publicId, format) {
     });
     
     if (!response.ok) {
+        if (response.status === 429) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Daily limit reached (2GB). Please try again tomorrow.');
+        }
         const error = await response.json();
         throw new Error(error.error || 'Conversion failed');
     }
@@ -900,6 +937,11 @@ async function downloadFiles(results) {
 
 async function downloadAllFiles(results) {
     try {
+        // Pre-check daily limit before starting ZIP job
+        if (await isDailyLimitReached()) {
+            alert('Daily limit reached (2GB). Please try again tomorrow.');
+            return;
+        }
         if (results.length === 1) {
             // Single file: keep current logic for direct download
             await downloadFiles(results);
