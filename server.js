@@ -48,6 +48,8 @@ function isLikelyValidImage(buffer, expectedExt) {
   }
   // BMP
   if (ext === 'bmp') {
+    // BMP must start with 'BM' and contain at least the 54-byte header
+    if (b.length < 54) return false;
     return b[0] === 0x42 && b[1] === 0x4D;
   }
   // TIFF (II*\0 or MM\0*)
