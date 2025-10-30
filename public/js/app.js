@@ -920,7 +920,118 @@ async function downloadFiles(results) {
 }
 
 async function downloadAllFiles(results) {
-    await downloadFiles(results);
+    try {
+        if (results.length === 1) {
+            // Single file: keep current logic for direct download
+            await downloadFiles(results);
+            return;
+        }
+        // -------- Advanced market-style ZIP job system --------
+        // Prepare files for job API
+        const files = results.map(({ publicId, format, originalName, convertedUrl }) => ({
+            publicId, format, originalName, convertedUrl
+        }));
+        // 1. POST to create ZIP job
+        // Show ONLY button spinner while preparing
+        convertBtn.disabled = true;
+        convertBtn.querySelector('.btn-text').style.display = 'none';
+        convertBtn.querySelector('.btn-loading').style.display = 'flex';
+        progressContainer.style.display = 'none';
+
+        const resp = await fetch('/api/zip-job', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files })
+        });
+        let outJson = { error: '', message: '' };
+        try {
+            outJson = await resp.json();
+        } catch (e) {}
+        if (!resp.ok) {
+            // Special: Cloudinary/usage/daily limit error detection
+            if ((outJson.error && outJson.error.includes('limit')) || (outJson.message && outJson.message.toLowerCase().includes('daily'))) {
+                convertBtn.querySelector('.btn-loading').style.display = 'none';
+                convertBtn.querySelector('.btn-text').style.display = 'block';
+                convertBtn.disabled = false;
+                alert(outJson.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                return;
+            }
+            throw new Error(outJson.error || 'ZIP job create failed');
+        }
+        const { jobId } = outJson;
+        if (!jobId) throw new Error('jobId missing');
+
+        // 2. Poll for status (no in-site progress visuals)
+        let jobReady = false, jobError = null, zipName = 'converted_files.zip';
+        let pollCount = 0, maxPoll = 300, pollTimer;
+        const pollZip = async () => {
+            pollCount++;
+            const sres = await fetch(`/api/zip-status?jobId=${encodeURIComponent(jobId)}`);
+            let stat = { error: '', message: '' };
+            try { stat = await sres.json(); } catch (e) {}
+            if (!sres.ok) {
+                // Usage/limit error mid-process
+                if ((stat.error && stat.error.includes('limit')) || (stat.message && stat.message.toLowerCase().includes('daily'))) {
+                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                    convertBtn.querySelector('.btn-text').style.display = 'block';
+                    convertBtn.disabled = false;
+                    alert(stat.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                    return;
+                }
+                throw new Error('Status poll failed');
+            }
+            if (stat.error) {
+                if (stat.error.includes('limit') || (stat.message && stat.message.toLowerCase().includes('daily'))) {
+                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                    convertBtn.querySelector('.btn-text').style.display = 'block';
+                    convertBtn.disabled = false;
+                    alert(stat.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                    return;
+                }
+                throw new Error('ZIP error: ' + stat.error);
+            }
+            if (stat.status === 'ready' && stat.ready) {
+               jobReady = true; zipName = stat.zipName || zipName;
+               // Stop spinner immediately, re-enable button
+               convertBtn.querySelector('.btn-loading').style.display = 'none';
+               convertBtn.querySelector('.btn-text').style.display = 'block';
+               convertBtn.disabled = false;
+               // Native browser download (progress shown by browser)
+               await doMarketDownload(jobId, zipName);
+               return;
+            } else if (stat.status === 'error') {
+               jobError = stat.error || 'ZIP preparation failed';
+               throw new Error(jobError);
+            } else {
+               if (pollCount>maxPoll) throw new Error('ZIP job timed out');
+               pollTimer = setTimeout(pollZip, 1000);
+            }
+        };
+        await pollZip();
+    } catch (error) {
+        progressContainer.style.display = 'none';
+        // Stop spinner and re-enable on error
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
+        convertBtn.querySelector('.btn-text').style.display = 'block';
+        convertBtn.disabled = false;
+        if (error && error.message && error.message.toLowerCase().includes('limit')) {
+            alert('Your daily conversion limit has been reached. Please try again tomorrow!');
+            return;
+        }
+        alert(error.message || 'ZIP download failed');
+    }
+}
+
+async function doMarketDownload(jobId, zipName) {
+    // Trigger browser-native download -- ZIP progress bar!
+    try {
+        let url = `/api/zip-file?jobId=${encodeURIComponent(jobId)}`;
+        // Use direct navigation for most reliable native progress UI
+        window.location.assign(url);
+        isDownloaded = true;
+    } catch(err) {
+        alert('Native ZIP download failed: ' + (err.message||''));
+    }
 }
 
 // Toast notifications removed
