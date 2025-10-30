@@ -9,6 +9,8 @@ const cron = require('node-cron');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const archiver = require('archiver');
 require('dotenv').config({ path: './config.env' });
 
@@ -17,7 +19,46 @@ const usageTracker = new Map();
 const DAILY_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
 
 const app = express();
+// Keep-Alive agents for faster Cloudinary GETs over HTTPS
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 10000 });
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 10000 });
+const axiosKA = axios.create({ httpAgent, httpsAgent });
 const PORT = process.env.PORT || 3000;
+
+// Validate downloaded image buffer by simple magic-bytes + size checks
+function isLikelyValidImage(buffer, expectedExt) {
+  if (!buffer || buffer.length < 32) return false; // too small to be valid
+  const b = buffer;
+  const ext = (expectedExt || '').toLowerCase().replace('.', '');
+  // PNG
+  if (ext === 'png') {
+    return b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47 && b[4] === 0x0D && b[5] === 0x0A && b[6] === 0x1A && b[7] === 0x0A;
+  }
+  // JPEG/JPG
+  if (ext === 'jpg' || ext === 'jpeg') {
+    return b[0] === 0xFF && b[1] === 0xD8 && b[b.length - 2] === 0xFF && b[b.length - 1] === 0xD9;
+  }
+  // GIF
+  if (ext === 'gif') {
+    return b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38;
+  }
+  // WebP (RIFF....WEBP)
+  if (ext === 'webp') {
+    return b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+  }
+  // BMP
+  if (ext === 'bmp') {
+    return b[0] === 0x42 && b[1] === 0x4D;
+  }
+  // TIFF (II*\0 or MM\0*)
+  if (ext === 'tiff' || ext === 'tif') {
+    const ii = b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A && b[3] === 0x00;
+    const mm = b[0] === 0x4D && b[1] === 0x4D && b[2] === 0x00 && b[3] === 0x2A;
+    return ii || mm;
+  }
+  // Fallback: basic size check to avoid HTML error pages
+  return buffer.length > 1024;
+}
 
 // Security middleware
 app.use(helmet({
@@ -242,16 +283,7 @@ const convertFile = async (publicId, originalFormat, targetFormat) => {
     
     const url = cloudinary.url(publicId, transformation);
     console.log(`Generated URL: ${url}`);
-    
-    // Trigger conversion with timeout - but don't fail if HEAD request fails
-    try {
-      const headResponse = await axios.head(url, { timeout: 20000 });
-      console.log(`HEAD request successful: ${headResponse.status}`);
-    } catch (headError) {
-      console.warn('HEAD request failed, but continuing:', headError.message);
-      // Continue even if HEAD fails - the URL might still work
-    }
-    
+    // no-HEAD: return URL directly; GET fetch will validate
     return url;
   } catch (error) {
     console.error('Conversion error:', error);
@@ -603,206 +635,85 @@ app.post('/api/download', async (req, res) => {
       console.log('Response sent at', Date.now());
       
     } else {
-      // Multiple files - create ZIP bundle with COMPLETE rewrite
-      console.log(`🚀 COMPLETE ZIP REWRITE: Creating ZIP bundle for ${files.length} files`);
-      console.log(`📋 Files to process: ${files.map(f => f.originalName).join(', ')}`);
-      
-      const totalFiles = files.length;
-      const processedFiles = [];
-      const failedFiles = [];
-      
-      // PHASE 1: Process ALL files first and store in memory
-      console.log('📦 PHASE 1: Processing ALL files and storing in memory...');
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const { publicId, format, originalName } = file;
-        
-        console.log(`🔄 Processing file ${i + 1}/${totalFiles}: ${originalName} (${format})`);
-        
-        try {
-          // Get the converted URL
-          const convertedUrl = await convertFile(publicId, 'webp', format);
-          console.log(`✅ Generated URL for ${originalName}`);
-          
-          // Fetch the file from Cloudinary with enhanced retry logic
-          let fileResponse;
-          let retryCount = 0;
-          const maxRetries = 5;
-          
-          while (retryCount <= maxRetries) {
-            try {
-              fileResponse = await axios({
-                method: 'GET',
-                url: convertedUrl,
-                responseType: 'arraybuffer',
-                timeout: 60000, // 60 seconds timeout
-                maxRedirects: 10,
-                validateStatus: function (status) {
-                  return status >= 200 && status < 300;
-                }
-              });
-              break; // Success, exit retry loop
-            } catch (fetchError) {
-              retryCount++;
-              console.error(`❌ Fetch attempt ${retryCount}/${maxRetries + 1} failed for ${originalName}:`, fetchError.message);
-              
-              if (retryCount > maxRetries) {
-                throw new Error(`Failed to fetch file after ${maxRetries + 1} attempts: ${fetchError.message}`);
-              }
-              
-              // Exponential backoff with jitter
-              const delay = Math.min(2000 * Math.pow(2, retryCount) + Math.random() * 2000, 15000);
-              console.log(`⏳ Waiting ${delay}ms before retry ${retryCount + 1}...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-            }
-          }
-          
-          // Create filename for ZIP entry by stripping original extension
-          let baseName = `file_${i + 1}`;
-          if (originalName) {
-            try {
-              const ext = path.extname(originalName);
-              baseName = ext ? path.basename(originalName, ext) : path.basename(originalName);
-              if (!baseName) baseName = `file_${i + 1}`;
-            } catch (error) {
-              console.warn('⚠️ Error processing ZIP filename:', error.message);
-              baseName = `file_${i + 1}`;
-            }
-          }
-          const zipFilename = `${baseName}.${format.toLowerCase()}`;
-          
-          // Store file data with validation
-          const fileBuffer = Buffer.from(fileResponse.data);
-          if (fileBuffer.length === 0) {
-            throw new Error(`File ${originalName} is empty`);
-          }
-          
-          processedFiles.push({
-            buffer: fileBuffer,
-            filename: zipFilename,
-            index: i + 1,
-            originalName: originalName,
-            size: fileBuffer.length
-          });
-          
-          console.log(`✅ Successfully processed ${originalName} (${i + 1}/${totalFiles}) - Size: ${fileBuffer.length} bytes`);
-          
-        } catch (fileError) {
-          console.error(`❌ Error processing file ${originalName}:`, fileError);
-          failedFiles.push({
-            originalName: originalName,
-            error: fileError.message,
-            index: i + 1
-          });
-        }
-      }
-      
-      console.log(`📊 PHASE 1 COMPLETE: ${processedFiles.length}/${totalFiles} files processed successfully`);
-      if (failedFiles.length > 0) {
-        console.log(`⚠️ Failed files: ${failedFiles.map(f => f.originalName).join(', ')}`);
-      }
-      
-      // PHASE 2: Create ZIP completely in memory with FULL VALIDATION
-      console.log('📦 PHASE 2: Creating ZIP archive completely in memory...');
-      
-      const archive = archiver('zip', {
-        zlib: { level: 6 } // Balanced compression for speed
-      });
-      
-      // Collect ZIP data in memory
-      const zipChunks = [];
-      let zipComplete = false;
-      let zipError = null;
-      
-      archive.on('data', (chunk) => {
-        zipChunks.push(chunk);
-      });
-      
-      archive.on('end', () => {
-        console.log(`✅ ZIP archive finalized successfully with ${processedFiles.length} files`);
-        zipComplete = true;
-      });
-      
-      archive.on('error', (err) => {
-        console.error('❌ Archive finalization error:', err);
-        zipError = err;
-      });
-      
-      // Add ALL processed files to ZIP with count validation
-      let addedCount = 0;
-      for (const fileData of processedFiles) {
-        archive.append(fileData.buffer, { name: fileData.filename });
-        addedCount++;
-        console.log(`📁 Added to ZIP: ${fileData.filename} (${addedCount}/${processedFiles.length}) - ${fileData.size} bytes`);
-      }
-      
-      console.log(`📦 ZIP processing complete: ${addedCount}/${processedFiles.length} files added to archive`);
-      
-      // CRITICAL: Verify all files were added before finalizing
-      if (addedCount !== processedFiles.length) {
-        throw new Error(`ZIP creation failed: Only ${addedCount}/${processedFiles.length} files added to archive`);
-      }
-      
-      // Finalize the archive and WAIT for complete creation
-      archive.finalize();
-      
-      // WAIT for ZIP to be completely finalized
-      await new Promise((resolve, reject) => {
-        const checkComplete = () => {
-          if (zipError) {
-            reject(zipError);
-          } else if (zipComplete) {
-            resolve();
-          } else {
-            setTimeout(checkComplete, 100); // Check every 100ms
-          }
+      // --- MARKET-LEVEL INSTANT ZIP (NO HEAD IN ZIP PHASE) ---
+      console.log(`🚀 MARKET ZIP: ${files.length} files (ultrafast mode)`);
+      // Tracks and generates unique ZIP entry names before fetch
+      const usedNames = new Map();
+      const safeName = (base, ext) => {
+        const candidate = `${base}${ext}`;
+        if (!usedNames.has(candidate)) { usedNames.set(candidate, 1); return candidate; }
+        let n = usedNames.get(candidate); let unique;
+        do { unique = `${base}_${n}${ext}`; n++; } while (usedNames.has(unique));
+        usedNames.set(candidate, n); usedNames.set(unique, 1); return unique;
+      };
+      // --- Pre-generate all filenames first for no race!
+      const fileDescs = files.map((file, k) => {
+        const idx = k + 1;
+        const ext = '.' + file.format.toLowerCase();
+        let base = file.originalName? (()=>{try{
+          const e = path.extname(file.originalName);
+          let b = e ? path.basename(file.originalName, e) : path.basename(file.originalName);
+          return b || `file_${idx}`;
+        }catch{ return `file_${idx}`;}})() : `file_${idx}`;
+        return {
+          ...file,
+          idx, origExt: ext, base, zipName: safeName(base, ext)
         };
-        checkComplete();
       });
-      
-      // Combine all ZIP chunks into a single buffer
-      const zipBuffer = Buffer.concat(zipChunks);
-      console.log(`📦 ZIP created in memory: ${zipBuffer.length} bytes`);
-      
-      // FINAL VALIDATION: Ensure ZIP buffer is valid and complete
-      if (zipBuffer.length === 0) {
-        throw new Error('ZIP buffer is empty - archive creation failed');
+      // --- Parallel GET, no HEAD, direct to convertedUrl if available, max 3 attempts ---
+      const fetchPromises = fileDescs.map(async (f) => {
+        const fetchUrl = f.convertedUrl ? f.convertedUrl : await convertFile(f.publicId, f.format, f.format);
+        let lastErr, resp;
+        for(let i=0;i<3;i++){
+          try {
+            resp = await axiosKA({ method: 'GET', url: fetchUrl, responseType: 'arraybuffer', timeout: 20000, maxRedirects: 5, validateStatus: s => s>=200&&s<300 });
+            if (!resp.data || resp.data.length === 0) throw new Error('File buffer empty');
+            const buf = Buffer.from(resp.data);
+            // Validate buffer content (magic bytes/size) for the target ext
+            const ext = (f.origExt || '.png').slice(1);
+            if (!isLikelyValidImage(buf, ext)) throw new Error('File buffer failed validation');
+            return { zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName };
+          } catch (e) { lastErr = e; if (i<2) await new Promise(r=>setTimeout(r,200)); }
+        }
+        throw new Error(`ZIP fetch failed: ${f.zipName} | ${lastErr && lastErr.message}`);
+      });
+      let got;
+      try { got = await Promise.all(fetchPromises); }
+      catch(err){
+        console.error('ZIP download error:', err);
+        if (!res.headersSent) return res.status(500).json({ error: err.message||'ZIP fetch failed' });
+        return;
       }
-      
-      // Validate ZIP file signature (PK header)
-      const zipSignature = zipBuffer.slice(0, 2);
-      if (zipSignature[0] !== 0x50 || zipSignature[1] !== 0x4B) {
-        throw new Error('Invalid ZIP file signature - archive corrupted');
+      // --- In-memory ZIP, compression level 1 ---
+      const archive = archiver('zip', { zlib: { level: 1 } });
+      const chunks = [];
+      archive.on('data', chunk => chunks.push(chunk));
+      let zipComplete = false, zipErr = null;
+      archive.on('end', ()=>zipComplete=true);
+      archive.on('error', err =>zipErr=err);
+      let fileN = 0;
+      for(const fileObj of got.sort((a,b)=>a.index-b.index)){
+        archive.append(fileObj.buffer, { name: fileObj.zipName });
+        fileN++;
+        console.log(`📁 Added: ${fileObj.zipName} (${fileN}/${got.length}) - ${fileObj.size} bytes`);
       }
-      
-      console.log(`✅ ZIP validation passed: ${zipBuffer.length} bytes, valid signature`);
-      console.log(`🎯 GUARANTEED: ${processedFiles.length} files stored in ZIP before download link provided`);
-      
-      // PHASE 3: Send complete ZIP file
-      console.log('📤 PHASE 3: Sending complete ZIP file...');
-      
-      // Set headers for ZIP download with cache-busting
+      archive.finalize();
+      // Await archive in-memory finish
+      await new Promise((resolve, reject)=>{
+        const wait = ()=>zipErr?reject(zipErr):zipComplete?resolve():setTimeout(wait,50);
+        wait();
+      });
+      const zipBuf = Buffer.concat(chunks);
+      if(zipBuf.length===0) return res.status(500).json({ error: 'ZIP buffer empty' });
+      // --- Now response! ---
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="converted_files_${Date.now()}.zip"`);
-      res.setHeader('Content-Length', zipBuffer.length.toString());
+      res.setHeader('Content-Length', zipBuf.length.toString());
+      res.setHeader('X-File-Count', got.length.toString());
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('X-File-Count', processedFiles.length.toString());
-      res.setHeader('X-Total-Files', totalFiles.toString());
-      res.setHeader('X-Success-Count', processedFiles.length.toString());
-      res.setHeader('X-Failed-Count', failedFiles.length.toString());
-      res.setHeader('X-ZIP-Size', zipBuffer.length.toString());
-      res.setHeader('X-Timestamp', Date.now().toString());
-      
-      // Send the complete ZIP file
-      res.send(zipBuffer);
-      console.log(`🎉 ZIP file sent successfully with ${processedFiles.length}/${totalFiles} files at`, Date.now());
-      
-      if (failedFiles.length > 0) {
-        console.log(`⚠️ Note: ${failedFiles.length} files failed to process and were excluded from ZIP`);
-      }
+      res.setHeader('Pragma', 'no-cache'); res.setHeader('Expires','0');
+      res.send(zipBuf);
+      console.log(`🎉 Market ZIP delivered: ${got.length} files, ${zipBuf.length} bytes.`);
     }
     
   } catch (error) {
