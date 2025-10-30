@@ -464,7 +464,7 @@ app.post('/api/upload/url', trackUsage, async (req, res) => {
 });
 
 // Convert files with parallel processing
-app.post('/api/convert', async (req, res) => {
+app.post('/api/convert', trackUsage, async (req, res) => {
   try {
     const { files, targetFormat } = req.body;
     
@@ -478,6 +478,14 @@ app.post('/api/convert', async (req, res) => {
       });
     }
     
+    // Hard guard: if limit was reached after middleware run (race), stop
+    if (req.usageTracker && req.usageTracker.usage.bytes >= DAILY_LIMIT) {
+      return res.status(429).json({
+        error: 'Daily usage limit reached',
+        message: 'You have reached your daily conversion limit of 2GB. Please try again tomorrow.'
+      });
+    }
+
     const convertedFiles = [];
     const errors = [];
     
@@ -738,13 +746,21 @@ const zipJobs = new Map();
 const randomHex = len => crypto.randomBytes(Math.ceil(len/2)).toString('hex').slice(0,len);
 
 // Create ZIP job - returns jobId, starts async ZIP process
-app.post('/api/zip-job', async (req, res) => {
+app.post('/api/zip-job', trackUsage, async (req, res) => {
   try {
     const { files } = req.body;
     if (!files || !Array.isArray(files) || files.length === 0)
       return res.status(400).json({ error: 'No files provided' });
     // Only allow "reasonable" jobs
     if (files.length > 50) return res.status(400).json({ error: 'Too many files (limit 50)' });
+
+    // Hard guard: stop immediately if daily limit reached
+    if (req.usageTracker && req.usageTracker.usage.bytes >= DAILY_LIMIT) {
+      return res.status(429).json({
+        error: 'Daily usage limit reached',
+        message: 'You have reached your daily conversion limit of 2GB. Please try again tomorrow.'
+      });
+    }
 
     const jobId = Date.now() + '-' + randomHex(8);
     const job = {
