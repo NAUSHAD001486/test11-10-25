@@ -1304,7 +1304,6 @@ select:focus-visible {
 .language-coming-soon-popup {
     position: absolute;
     left: 0;
-    right: 0;
     display: none;
     color: #FFFFFF;
     font-size: 14px;
@@ -1318,6 +1317,8 @@ select:focus-visible {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
     margin: 4px 0;
+    width: fit-content;
+    white-space: nowrap;
 }
 
 @keyframes fadeIn {
