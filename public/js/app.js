@@ -307,9 +307,9 @@ function initializeEventListeners() {
     // Initialization is now in DOMContentLoaded handler
 }
 
-// Language selection handler
+// Language selection handler - ES5 compatible for Safari
 function handleLanguageChange(e) {
-    const selectedLanguage = e.target.value;
+    var selectedLanguage = e.target.value;
     
     // If English is selected, allow it (do nothing)
     if (selectedLanguage === 'en') {
@@ -323,13 +323,30 @@ function handleLanguageChange(e) {
     e.target.value = 'en'; // Reset to English
 }
 
-let languageMessageTimeout = null;
+var languageMessageTimeout = null;
 
-// Show "Coming Soon" message for language selection in footer
+// Show "Coming Soon" message for language selection in footer - ES5 compatible
 function showLanguageComingSoon() {
     // Find the language selector element and footer section
-    const languageSelect = document.getElementById('languageSelect');
-    const footerSection = languageSelect ? languageSelect.closest('.footer-section') : null;
+    var languageSelect = document.getElementById('languageSelect');
+    var footerSection = null;
+    
+    // Safari compatible closest() fallback
+    if (languageSelect) {
+        if (languageSelect.closest) {
+            footerSection = languageSelect.closest('.footer-section');
+        } else {
+            // Fallback for browsers without closest()
+            var parent = languageSelect.parentElement;
+            while (parent && parent !== document.body) {
+                if (parent.className && parent.className.indexOf('footer-section') > -1) {
+                    footerSection = parent;
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+    }
     
     if (!languageSelect || !footerSection) return;
     
@@ -339,12 +356,13 @@ function showLanguageComingSoon() {
     }
     
     // Ensure footer section is positioning context
-    if (getComputedStyle(footerSection).position === 'static') {
+    var computedStyle = window.getComputedStyle ? window.getComputedStyle(footerSection) : footerSection.currentStyle;
+    if (computedStyle && computedStyle.position === 'static') {
         footerSection.style.position = 'relative';
     }
 
     // Popup element (overlay) — does not affect layout
-    let messageElement = footerSection.querySelector('.language-coming-soon-popup');
+    var messageElement = footerSection.querySelector('.language-coming-soon-popup');
     if (!messageElement) {
         messageElement = document.createElement('div');
         messageElement.className = 'language-coming-soon-popup';
@@ -353,26 +371,43 @@ function showLanguageComingSoon() {
     }
 
     // Anchor popup just above the language selector box heading without shifting layout
-    const languageHeading = footerSection.querySelector('h4');
-    const anchorTop = languageHeading ? languageHeading.offsetTop : 0;
+    var languageHeading = footerSection.querySelector('h4');
+    var anchorTop = languageHeading && languageHeading.offsetTop ? languageHeading.offsetTop : 0;
     // Place slightly above the heading
     messageElement.style.top = Math.max(0, anchorTop - 26) + 'px';
     messageElement.style.left = '0';
     messageElement.style.right = '0';
     messageElement.style.display = 'block';
     
-    // Auto-hide after 3 seconds
-    languageMessageTimeout = setTimeout(() => {
+    // Auto-hide after 3 seconds - ES5 compatible
+    languageMessageTimeout = setTimeout(function() {
         hideLanguageMessage();
     }, 3000);
 }
 
 function hideLanguageMessage() {
-    const languageSelect = document.getElementById('languageSelect');
-    const footerSection = languageSelect ? languageSelect.closest('.footer-section') : null;
+    var languageSelect = document.getElementById('languageSelect');
+    var footerSection = null;
+    
+    // Safari compatible closest() fallback
+    if (languageSelect) {
+        if (languageSelect.closest) {
+            footerSection = languageSelect.closest('.footer-section');
+        } else {
+            // Fallback for browsers without closest()
+            var parent = languageSelect.parentElement;
+            while (parent && parent !== document.body) {
+                if (parent.className && parent.className.indexOf('footer-section') > -1) {
+                    footerSection = parent;
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+    }
     
     if (footerSection) {
-        const messageElement = footerSection.querySelector('.language-coming-soon-popup');
+        var messageElement = footerSection.querySelector('.language-coming-soon-popup');
         if (messageElement) {
             messageElement.style.display = 'none';
         }
@@ -393,11 +428,11 @@ function initializeScrollHandler() {
         return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
     }
     
-    let lastScrollY = getScrollY();
-    let ticking = false;
+    var lastScrollY = getScrollY();
+    var ticking = false;
     
     function updateHeader() {
-        const currentScrollY = getScrollY();
+        var currentScrollY = getScrollY();
         
         if (currentScrollY > lastScrollY && currentScrollY > 100) {
             if (header && header.classList) {
@@ -426,9 +461,15 @@ function initializeScrollHandler() {
         }
     }
     
-    // Cross-browser scroll event
+    // Cross-browser scroll event - Safari compatible
     if (window.addEventListener) {
-        window.addEventListener('scroll', requestTick, { passive: true });
+        // Safari compatible event listener (some versions don't support options)
+        try {
+            window.addEventListener('scroll', requestTick, { passive: true });
+        } catch (e) {
+            // Fallback for browsers that don't support options
+    window.addEventListener('scroll', requestTick);
+        }
     } else if (window.attachEvent) {
         window.attachEvent('onscroll', requestTick);
     }
@@ -469,10 +510,16 @@ function toggleFileSourceDropdown(e) {
     if (fileSourceDropdown.classList) {
     fileSourceDropdown.classList.toggle('show');
     } else {
-        // IE fallback
-        const classes = fileSourceDropdown.className.split(' ');
+        // IE fallback - ES5 compatible
+        var classes = fileSourceDropdown.className.split(' ');
+        var filteredClasses = [];
+        for (var i = 0; i < classes.length; i++) {
+            if (classes[i] !== 'show') {
+                filteredClasses.push(classes[i]);
+            }
+        }
         if (classes.indexOf('show') > -1) {
-            fileSourceDropdown.className = classes.filter(c => c !== 'show').join(' ');
+            fileSourceDropdown.className = filteredClasses.join(' ');
         } else {
             fileSourceDropdown.className += ' show';
         }
@@ -507,10 +554,18 @@ function closeDropdownsOnOutsideClick(e) {
     }
 }
 
-// File source selection
+// File source selection - ES5 compatible for Safari
 function handleFileSourceSelection(e) {
-    const source = e.currentTarget.dataset.source;
+    var source = null;
+    // Safari compatible dataset access
+    if (e.currentTarget && e.currentTarget.dataset) {
+        source = e.currentTarget.dataset.source;
+    } else if (e.currentTarget && e.currentTarget.getAttribute) {
+        source = e.currentTarget.getAttribute('data-source');
+    }
+    if (fileSourceDropdown && fileSourceDropdown.classList) {
     fileSourceDropdown.classList.remove('show');
+    }
     
     switch (source) {
         case 'device':
@@ -534,16 +589,32 @@ function toggleFormatDropdown(e) {
 }
 
 function handleFormatSelection(e) {
+    // Safari compatible dataset access
+    if (e.currentTarget && e.currentTarget.dataset) {
     selectedFormat = e.currentTarget.dataset.format;
-    document.getElementById('selectedFormat').textContent = selectedFormat;
+    } else if (e.currentTarget && e.currentTarget.getAttribute) {
+        selectedFormat = e.currentTarget.getAttribute('data-format');
+    }
     
-    // Update selected state
-    document.querySelectorAll('.format-option').forEach(option => {
-        option.classList.remove('selected');
-    });
+    var selectedFormatElement = document.getElementById('selectedFormat');
+    if (selectedFormatElement) {
+        selectedFormatElement.textContent = selectedFormat;
+    }
+    
+    // Update selected state - ES5 compatible
+    var formatOptionsList = document.querySelectorAll('.format-option');
+    for (var i = 0; i < formatOptionsList.length; i++) {
+        if (formatOptionsList[i].classList) {
+            formatOptionsList[i].classList.remove('selected');
+        }
+    }
+    if (e.currentTarget && e.currentTarget.classList) {
     e.currentTarget.classList.add('selected');
+    }
     
+    if (formatOptions && formatOptions.classList) {
     formatOptions.classList.remove('show');
+    }
 }
 
 // File handling
@@ -551,14 +622,14 @@ function handleFormatSelection(e) {
 function handleFileSelection(e) {
     if (!e || !e.target || !e.target.files) return;
     try {
-        let files;
-        // Cross-browser file array conversion
+        var files;
+        // Cross-browser file array conversion - ES5 compatible
         if (Array.from) {
             files = Array.from(e.target.files);
         } else {
-            // IE fallback
+            // IE/Safari fallback
             files = [];
-            for (let i = 0; i < e.target.files.length; i++) {
+            for (var i = 0; i < e.target.files.length; i++) {
                 files.push(e.target.files[i]);
             }
         }
@@ -626,15 +697,15 @@ function handleDrop(e) {
             return;
         }
         
-        // Cross-browser file array conversion
-        const files = e.dataTransfer.files;
-        let fileArray;
+        // Cross-browser file array conversion - ES5 compatible
+        var files = e.dataTransfer.files;
+        var fileArray;
         if (Array.from) {
             fileArray = Array.from(files);
         } else {
-            // IE fallback
+            // IE/Safari fallback
             fileArray = [];
-            for (let i = 0; i < files.length; i++) {
+            for (var i = 0; i < files.length; i++) {
                 fileArray.push(files[i]);
             }
         }
@@ -651,26 +722,63 @@ function handleDrop(e) {
 }
 
 function handleUploadBoxClick(e) {
-    // Don't trigger if clicking on the button or dropdown
-    if (e.target.closest('.select-files-btn') || e.target.closest('.file-source-dropdown')) {
+    // Don't trigger if clicking on the button or dropdown - Safari compatible
+    var target = e.target;
+    var isButton = false;
+    var isDropdown = false;
+    
+    // Safari compatible closest() fallback
+    if (target.closest) {
+        isButton = target.closest('.select-files-btn');
+        isDropdown = target.closest('.file-source-dropdown');
+    } else {
+        // Fallback for browsers without closest()
+        var parent = target.parentElement;
+        while (parent && parent !== document.body) {
+            if (parent.className) {
+                if (parent.className.indexOf('select-files-btn') > -1) {
+                    isButton = true;
+                }
+                if (parent.className.indexOf('file-source-dropdown') > -1) {
+                    isDropdown = true;
+                }
+            }
+            parent = parent.parentElement;
+        }
+    }
+    
+    if (isButton || isDropdown) {
         return;
     }
     
     // Open file manager directly
+    if (fileInput) {
     fileInput.click();
+    }
 }
 
-// Lightweight file validation
+// Lightweight file validation - ES5 compatible for Safari
 function validateFile(file) {
-    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    var maxSize = 2 * 1024 * 1024 * 1024; // 2GB
     
     if (file.size > maxSize) {
-        throw new Error(`File "${file.name}" is too large. Maximum size: 2GB`);
+        throw new Error('File "' + file.name + '" is too large. Maximum size: 2GB');
     }
     
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!SUPPORTED_INPUT_FORMATS.includes(ext)) {
-        throw new Error(`Unsupported file. Supported inputs: ${SUPPORTED_INPUT_FORMATS.join(', ')}`);
+    var nameParts = file.name.split('.');
+    var ext = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : '';
+    
+    // ES5 compatible includes() fallback
+    var isSupported = false;
+    for (var i = 0; i < SUPPORTED_INPUT_FORMATS.length; i++) {
+        if (SUPPORTED_INPUT_FORMATS[i] === ext) {
+            isSupported = true;
+            break;
+        }
+    }
+    
+    if (!isSupported) {
+        throw new Error('Unsupported file. Supported inputs: ' + SUPPORTED_INPUT_FORMATS.join(', '));
     }
     
     return true;
