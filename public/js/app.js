@@ -112,6 +112,85 @@ function initializeEventListeners() {
     document.querySelectorAll('.toast').forEach(toast => {
         toast.addEventListener('click', () => hideToast(toast));
     });
+    
+    // Language selector
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', handleLanguageChange);
+    }
+}
+
+// Language selection handler
+function handleLanguageChange(e) {
+    const selectedLanguage = e.target.value;
+    
+    // If English is selected, allow it (do nothing)
+    if (selectedLanguage === 'en') {
+        // Hide message if visible
+        hideLanguageMessage();
+        return;
+    }
+    
+    // If any other language is selected, show "Coming Soon" message and reset to English
+    showLanguageComingSoon();
+    e.target.value = 'en'; // Reset to English
+}
+
+let languageMessageTimeout = null;
+
+// Show "Coming Soon" message for language selection in footer
+function showLanguageComingSoon() {
+    // Find the language selector element and footer section
+    const languageSelect = document.getElementById('languageSelect');
+    const footerSection = languageSelect ? languageSelect.closest('.footer-section') : null;
+    
+    if (!languageSelect || !footerSection) return;
+    
+    // Clear any existing timeout
+    if (languageMessageTimeout) {
+        clearTimeout(languageMessageTimeout);
+    }
+    
+    // Check if message element already exists
+    let messageElement = footerSection.querySelector('.language-coming-soon-message');
+    
+    // If doesn't exist, create it
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.className = 'language-coming-soon-message';
+        messageElement.textContent = 'Coming Soon';
+    }
+    
+    // Insert message above "Language" heading
+    const languageHeading = footerSection.querySelector('h4');
+    if (languageHeading && messageElement.parentNode !== footerSection) {
+        footerSection.insertBefore(messageElement, languageHeading);
+    }
+    
+    // Show message
+    messageElement.style.display = 'block';
+    
+    // Auto-hide after 3 seconds
+    languageMessageTimeout = setTimeout(() => {
+        hideLanguageMessage();
+    }, 3000);
+}
+
+function hideLanguageMessage() {
+    const languageSelect = document.getElementById('languageSelect');
+    const footerSection = languageSelect ? languageSelect.closest('.footer-section') : null;
+    
+    if (footerSection) {
+        const messageElement = footerSection.querySelector('.language-coming-soon-message');
+        if (messageElement) {
+            messageElement.style.display = 'none';
+        }
+    }
+    
+    if (languageMessageTimeout) {
+        clearTimeout(languageMessageTimeout);
+        languageMessageTimeout = null;
+    }
 }
 
 // Scroll handler for header
