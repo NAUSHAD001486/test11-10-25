@@ -25,38 +25,79 @@ let isDownloaded = false;
 const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
 const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
 
-// DOM elements
-const header = document.getElementById('header');
-const uploadBox = document.getElementById('uploadBox');
-const selectFilesBtn = document.getElementById('selectFilesBtn');
-const fileSourceDropdown = document.getElementById('fileSourceDropdown');
-const fileListContainer = document.getElementById('fileListContainer');
-const outputSettings = document.getElementById('outputSettings');
-const formatBtn = document.getElementById('formatBtn');
-const formatOptions = document.getElementById('formatOptions');
-const convertBtn = document.getElementById('convertBtn');
-const progressContainer = document.getElementById('progressContainer');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const errorMessageContainer = document.getElementById('errorMessageContainer');
-const errorMessage = document.getElementById('errorMessage');
-// Removed progressCounter reference
-const fileInput = document.getElementById('fileInput');
-const urlModal = document.getElementById('urlModal');
-const urlInput = document.getElementById('urlInput');
-const urlSubmit = document.getElementById('urlSubmit');
-const modalClose = document.getElementById('modalClose');
-// Toast notifications removed
+// DOM elements - Initialize safely to prevent Safari crashes
+let header, uploadBox, selectFilesBtn, fileSourceDropdown, fileListContainer;
+let outputSettings, formatBtn, formatOptions, convertBtn;
+let progressContainer, progressFill, progressText;
+let errorMessageContainer, errorMessage;
+let fileInput, urlModal, urlInput, urlSubmit, modalClose;
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', function() {
-    // Track page view
-    trackPageView('Love U Convert - WebP to PNG Converter');
+// Safely initialize DOM elements
+function initializeDOMElements() {
+    header = document.getElementById('header');
+    uploadBox = document.getElementById('uploadBox');
+    selectFilesBtn = document.getElementById('selectFilesBtn');
+    fileSourceDropdown = document.getElementById('fileSourceDropdown');
+    fileListContainer = document.getElementById('fileListContainer');
+    outputSettings = document.getElementById('outputSettings');
+    formatBtn = document.getElementById('formatBtn');
+    formatOptions = document.getElementById('formatOptions');
+    convertBtn = document.getElementById('convertBtn');
+    progressContainer = document.getElementById('progressContainer');
+    progressFill = document.getElementById('progressFill');
+    progressText = document.getElementById('progressText');
+    errorMessageContainer = document.getElementById('errorMessageContainer');
+    errorMessage = document.getElementById('errorMessage');
+    fileInput = document.getElementById('fileInput');
+    urlModal = document.getElementById('urlModal');
+    urlInput = document.getElementById('urlInput');
+    urlSubmit = document.getElementById('urlSubmit');
+    modalClose = document.getElementById('modalClose');
     
-    initializeEventListeners();
-    initializeScrollHandler();
-    initializeServiceWorker();
-    initializeFAQ();
+    // Validate critical elements exist
+    if (!uploadBox || !fileListContainer || !convertBtn) {
+        console.error('Critical DOM elements not found');
+        return false;
+    }
+    return true;
+}
+
+// Initialize app - Safely handle Safari compatibility
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Initialize DOM elements first
+        if (!initializeDOMElements()) {
+            console.error('Failed to initialize DOM elements');
+            return;
+        }
+        
+        // Track page view (only if gtag is available)
+        trackPageView('Love U Convert - WebP to PNG Converter');
+        
+        // Initialize features safely
+        if (typeof initializeEventListeners === 'function') {
+            initializeEventListeners();
+        }
+        if (typeof initializeScrollHandler === 'function') {
+            initializeScrollHandler();
+        }
+        if (typeof initializeServiceWorker === 'function') {
+            initializeServiceWorker();
+        }
+        if (typeof initializeFAQ === 'function') {
+            initializeFAQ();
+        }
+        
+        // Language selector initialization
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect && typeof handleLanguageChange === 'function') {
+            languageSelect.addEventListener('change', handleLanguageChange);
+        }
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        // Show user-friendly error message
+        alert('An error occurred while loading the page. Please refresh.');
+    }
 });
 
 // Daily limit check
@@ -72,52 +113,59 @@ async function isDailyLimitReached() {
     }
 }
 
-// Event listeners
+// Event listeners - Safely initialize with null checks for Safari
 function initializeEventListeners() {
     // File source dropdown
-    selectFilesBtn.addEventListener('click', toggleFileSourceDropdown);
-    document.addEventListener('click', closeDropdownsOnOutsideClick);
-    
-    // File source options
-    document.querySelectorAll('.dropdown-item').forEach(item => {
-        item.addEventListener('click', handleFileSourceSelection);
-    });
+    if (selectFilesBtn && fileSourceDropdown) {
+        selectFilesBtn.addEventListener('click', toggleFileSourceDropdown);
+        document.addEventListener('click', closeDropdownsOnOutsideClick);
+        
+        // File source options
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', handleFileSourceSelection);
+        });
+    }
     
     // Format dropdown
-    formatBtn.addEventListener('click', toggleFormatDropdown);
-    document.querySelectorAll('.format-option').forEach(option => {
-        option.addEventListener('click', handleFormatSelection);
-    });
+    if (formatBtn && formatOptions) {
+        formatBtn.addEventListener('click', toggleFormatDropdown);
+        document.querySelectorAll('.format-option').forEach(option => {
+            option.addEventListener('click', handleFormatSelection);
+        });
+    }
     
     // File input
-    fileInput.addEventListener('change', handleFileSelection);
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelection);
+    }
     
     // Drag and drop
-    uploadBox.addEventListener('dragover', handleDragOver);
-    uploadBox.addEventListener('dragleave', handleDragLeave);
-    uploadBox.addEventListener('drop', handleDrop);
-    
-    // Click anywhere in upload box to open file manager
-    uploadBox.addEventListener('click', handleUploadBoxClick);
+    if (uploadBox) {
+        uploadBox.addEventListener('dragover', handleDragOver);
+        uploadBox.addEventListener('dragleave', handleDragLeave);
+        uploadBox.addEventListener('drop', handleDrop);
+        uploadBox.addEventListener('click', handleUploadBoxClick);
+    }
     
     // Convert button
-    convertBtn.addEventListener('click', handleConvert);
+    if (convertBtn) {
+        convertBtn.addEventListener('click', handleConvert);
+    }
     
     // URL modal
-    urlSubmit.addEventListener('click', handleUrlSubmit);
-    modalClose.addEventListener('click', closeUrlModal);
-    urlModal.addEventListener('click', handleModalBackdropClick);
+    if (urlSubmit && modalClose && urlModal) {
+        urlSubmit.addEventListener('click', handleUrlSubmit);
+        modalClose.addEventListener('click', closeUrlModal);
+        urlModal.addEventListener('click', handleModalBackdropClick);
+    }
     
     // Toast close
     document.querySelectorAll('.toast').forEach(toast => {
         toast.addEventListener('click', () => hideToast(toast));
     });
     
-    // Language selector
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', handleLanguageChange);
-    }
+    // Language selector - Moved to DOMContentLoaded to prevent Safari issues
+    // Initialization is now in DOMContentLoaded handler
 }
 
 // Language selection handler
