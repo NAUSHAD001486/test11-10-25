@@ -81,32 +81,59 @@ function domReady(fn) {
     }
 }
 
-// Initialize app - Cross-browser and mobile compatible
+// Initialize app - Cross-browser and mobile compatible with Safari fixes
 domReady(function() {
     try {
-        // Wait a bit for all elements to be fully loaded (Safari fix)
+        // Safari requires longer delay for DOM to be fully ready
+        var safariDelay = (navigator.userAgent.indexOf('Safari') > -1 && navigator.userAgent.indexOf('Chrome') === -1) ? 200 : 50;
+        
         setTimeout(function() {
             // Initialize DOM elements first
             if (!initializeDOMElements()) {
                 console.error('Failed to initialize DOM elements');
-                // Retry once after a short delay
-                setTimeout(function() {
-                    if (!initializeDOMElements()) {
-                        console.error('Critical DOM elements still not found');
-                        return;
+                // Retry multiple times for Safari
+                var retryCount = 0;
+                var maxRetries = 5;
+                
+                var retryInit = function() {
+                    retryCount++;
+                    if (retryCount <= maxRetries) {
+                        if (!initializeDOMElements()) {
+                            setTimeout(retryInit, 100);
+                            return;
+                        }
+                        initializeAppFeatures();
+                    } else {
+                        console.error('Critical DOM elements still not found after retries');
+                        // Try to initialize with what we have anyway
+                        initializeAppFeatures();
                     }
-                    initializeAppFeatures();
-                }, 100);
+                };
+                
+                setTimeout(retryInit, 100);
                 return;
             }
             initializeAppFeatures();
-        }, 50);
+        }, safariDelay);
     } catch (error) {
         console.error('Error initializing app:', error);
         // Show user-friendly error message
         if (typeof alert !== 'undefined') {
             alert('An error occurred while loading the page. Please refresh.');
         }
+        // Safari fallback - try initialization anyway
+        setTimeout(function() {
+            try {
+                if (typeof initializeDOMElements === 'function') {
+                    initializeDOMElements();
+                }
+                if (typeof initializeAppFeatures === 'function') {
+                    initializeAppFeatures();
+                }
+            } catch (e) {
+                console.error('Fallback initialization failed:', e);
+            }
+        }, 300);
     }
 });
 
@@ -916,7 +943,7 @@ function updateFileList() {
 }
 
 function createFileItem(fileObj) {
-    const fileItem = document.createElement('div');
+    var fileItem = document.createElement('div');
     fileItem.className = 'file-item';
     fileItem.dataset.fileId = fileObj.id;
     
@@ -1023,15 +1050,19 @@ function handleModalBackdropClick(e) {
 }
 
 function handleUrlSubmit() {
-    const url = urlInput.value.trim();
+    var url = urlInput.value.trim();
     
     if (!url) {
+        if (typeof showError === 'function') {
             showError('Please enter a valid URL');
+        }
         return;
     }
     
     if (!isValidImageUrl(url)) {
+        if (typeof showError === 'function') {
             showError('Please enter a valid image URL');
+        }
         return;
     }
     
@@ -1039,23 +1070,30 @@ function handleUrlSubmit() {
     urlSubmit.textContent = 'Uploading...';
     
     uploadFromUrl(url)
-        .then(fileObj => {
+        .then(function(fileObj) {
             uploadedFiles.push(fileObj);
             updateFileList();
             updateUI();
+            if (typeof closeUrlModal === 'function') {
             closeUrlModal();
+            }
             // File uploaded successfully
             hideError(); // Hide error on success
         })
-        .catch(error => {
+        .catch(function(error) {
             // Show error message
-            if (error.message && error.message.includes('limit')) {
-                showError(error.message);
+            if (error.message && error.message.indexOf('limit') > -1) {
+                if (typeof showError === 'function') {
+                    showError(error.message);
+                }
             } else {
-                showError(error.message || 'Upload failed. Please try again.');
+                if (typeof showError === 'function') {
+                    showError(error.message || 'Upload failed. Please try again.');
+                }
             }
         })
-        .finally(() => {
+        .then(function() {
+            // Finally block - ES5 compatible
             urlSubmit.disabled = false;
             urlSubmit.textContent = 'Upload from URL';
         });
@@ -1063,11 +1101,18 @@ function handleUrlSubmit() {
 
 function isValidImageUrl(url) {
     try {
-        const urlObj = new URL(url);
-        const pathname = urlObj.pathname.toLowerCase();
-        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.tiff', '.ico'];
-        return imageExtensions.some(ext => pathname.endsWith(ext));
-    } catch {
+        var urlObj = new URL(url);
+        var pathname = urlObj.pathname.toLowerCase();
+        var imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.tiff', '.ico'];
+        
+        // ES5 compatible some() fallback
+        for (var i = 0; i < imageExtensions.length; i++) {
+            if (pathname.indexOf(imageExtensions[i]) === pathname.length - imageExtensions[i].length) {
+                return true;
+            }
+        }
+        return false;
+    } catch (e) {
         return false;
     }
 }
@@ -1338,56 +1383,60 @@ async function convertFile(publicId, format) {
 }
 
 function updateProgress(percentage, text) {
-    const counterValue = Math.round(percentage);
+    var counterValue = Math.round(percentage);
     
-    progressFill.style.width = `${percentage}%`;
+    progressFill.style.width = percentage + '%';
     
-    // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc.
-    if (text && text.includes('Finalizing')) {
-        progressText.textContent = `Finalizing ${counterValue}...`;
+    // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc. - ES5 compatible
+    var hasFinalizing = text && text.indexOf('Finalizing') > -1;
+    if (hasFinalizing) {
+        progressText.textContent = 'Finalizing ' + counterValue + '...';
     } else {
-        progressText.textContent = text || `${counterValue}%`;
+        progressText.textContent = text || (counterValue + '%');
     }
     
     // Keep same purple color throughout (no color change)
+    if (progressContainer && progressContainer.classList) {
     progressContainer.classList.remove('done');
+    }
     progressFill.style.background = 'linear-gradient(90deg, rgba(124, 58, 237, 0.7), rgba(109, 40, 217, 0.7))';
 }
 
 function animateProgress(targetPercentage, text) {
-    const currentPercentage = parseFloat(progressFill.style.width) || 0;
-    const targetValue = Math.round(targetPercentage);
-    const currentValue = Math.round(currentPercentage);
+    var currentPercentage = parseFloat(progressFill.style.width) || 0;
+    var targetValue = Math.round(targetPercentage);
+    var currentValue = Math.round(currentPercentage);
     
     // Animate progress from current to target with real-time counter
-    const duration = 500; // 500ms animation
-    const steps = Math.abs(targetValue - currentValue);
-    const stepDuration = duration / Math.max(steps, 1);
+    var duration = 500; // 500ms animation
+    var steps = Math.abs(targetValue - currentValue);
+    var stepDuration = duration / Math.max(steps, 1);
     
-    let currentStep = 0;
-    const counter = setInterval(() => {
+    var currentStep = 0;
+    var counter = setInterval(function() {
         currentStep++;
-        const progress = currentStep / steps;
-        const animatedValue = Math.round(currentValue + (targetValue - currentValue) * progress);
+        var progress = currentStep / steps;
+        var animatedValue = Math.round(currentValue + (targetValue - currentValue) * progress);
         
-        progressFill.style.width = `${animatedValue}%`;
+        progressFill.style.width = animatedValue + '%';
         
-        // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc.
-        if (text && text.includes('Finalizing')) {
-            progressText.textContent = `Finalizing ${animatedValue}...`;
+        // Show real-time counter: "Finalizing 1...", "Finalizing 2...", etc. - ES5 compatible
+        var hasFinalizing = text && text.indexOf('Finalizing') > -1;
+        if (hasFinalizing) {
+            progressText.textContent = 'Finalizing ' + animatedValue + '...';
         } else {
-            progressText.textContent = text || `${animatedValue}%`;
+            progressText.textContent = text || (animatedValue + '%');
         }
         
         if (currentStep >= steps) {
             clearInterval(counter);
-            progressFill.style.width = `${targetPercentage}%`;
+            progressFill.style.width = targetPercentage + '%';
             
             // Final counter display
-            if (text && text.includes('Finalizing')) {
-                progressText.textContent = `Finalizing ${targetValue}...`;
+            if (hasFinalizing) {
+                progressText.textContent = 'Finalizing ' + targetValue + '...';
             } else {
-                progressText.textContent = text || `${targetValue}%`;
+                progressText.textContent = text || (targetValue + '%');
             }
         }
     }, stepDuration);
@@ -1397,19 +1446,27 @@ function showResults(results) {
     console.log('showResults called with', results.length, 'results');
     
     // Update convert button text based on number of files
-    if (results.length === 1) {
-        convertBtn.querySelector('.btn-text').textContent = 'Download';
-    } else {
-        convertBtn.querySelector('.btn-text').textContent = 'Download All';
+    var btnText = convertBtn.querySelector('.btn-text');
+    if (btnText) {
+        if (results.length === 1) {
+            btnText.textContent = 'Download';
+        } else {
+            btnText.textContent = 'Download All';
+        }
     }
     
-    convertBtn.classList.add('download');
-    convertBtn.onclick = () => downloadAllFiles(results);
+    if (convertBtn && convertBtn.classList) {
+        convertBtn.classList.add('download');
+    }
+    // ES5 compatible onclick handler
+    convertBtn.onclick = function() {
+        downloadAllFiles(results);
+    };
 }
 
 async function downloadFiles(results) {
     try {
-        console.log(`Starting download for ${results.length} file(s)`);
+        console.log('Starting download for ' + results.length + ' file(s)');
         
         // Track download start
         trackEvent('download_start', {
@@ -1535,10 +1592,16 @@ async function downloadAllFiles(results) {
             return;
         }
         // -------- Advanced market-style ZIP job system --------
-        // Prepare files for job API
-        const files = results.map(({ publicId, format, originalName, convertedUrl }) => ({
-            publicId, format, originalName, convertedUrl
-        }));
+        // Prepare files for job API - ES5 compatible
+        var files = [];
+        for (var i = 0; i < results.length; i++) {
+            files.push({
+                publicId: results[i].publicId,
+                format: results[i].format,
+                originalName: results[i].originalName,
+                convertedUrl: results[i].convertedUrl
+            });
+        }
         // 1. POST to create ZIP job
         // Show ONLY button spinner while preparing
         convertBtn.disabled = true;
