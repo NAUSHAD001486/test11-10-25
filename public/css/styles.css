@@ -1306,14 +1306,18 @@ select:focus-visible {
     left: 0;
     right: 0;
     display: none;
-    color: #7C3AED;
+    color: #FFFFFF;
     font-size: 14px;
     font-weight: 600;
     text-align: left;
-    padding: 4px 0;
+    padding: 8px 16px;
     pointer-events: none; /* allow clicks to pass through */
     animation: fadeIn 0.2s ease-in;
     z-index: 2;
+    background: linear-gradient(135deg, #7C3AED 0%, #9F7AEA 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    margin: 4px 0;
 }
 
 @keyframes fadeIn {
