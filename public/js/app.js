@@ -263,15 +263,8 @@ function validateFile(file) {
 }
 
 async function processFiles(files) {
-    // Check daily limit before processing files
-    if (await isDailyLimitReached()) {
-        showError('Daily limit reached (2MB). Please try again tomorrow.');
-        // Mark all files as rejected
-        files.forEach(file => {
-            // Add visual rejection indicator (optional)
-        });
-        return;
-    }
+    // Allow image selection - limit check only on convert button click
+    // No limit check here - let images be selected
     
     const validFiles = [];
     const errors = [];

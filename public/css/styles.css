@@ -505,23 +505,21 @@ body {
 
 /* Error Message Container */
 .error-message-container {
-    margin: 0 auto 16px auto;
+    margin: 0 auto 20px auto;
     max-width: 800px;
     width: 100%;
     padding: 0 20px;
     animation: errorSlideDown 0.3s ease-out;
+    text-align: center;
 }
 
 .error-message {
-    background: #FEE2E2;
-    border: 2px solid #DC2626;
-    border-radius: var(--radius-md);
-    padding: 14px 18px;
     color: #DC2626;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
+    line-height: 1.5;
     text-align: center;
-    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1), 0 2px 4px -1px rgba(220, 38, 38, 0.06);
+    /* No background, only text styling */
 }
 
 @keyframes errorSlideDown {
