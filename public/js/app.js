@@ -532,7 +532,7 @@ async function uploadFromUrl(url) {
     try {
         // Check limit before uploading from URL
         if (await isDailyLimitReached()) {
-            throw new Error('Daily limit reached (2MB). Please try again tomorrow.');
+            throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
         }
         const response = await fetch('/api/upload/url', {
             method: 'POST',
@@ -544,7 +544,7 @@ async function uploadFromUrl(url) {
         
         if (!response.ok) {
             if (response.status === 429) {
-                throw new Error('Daily limit reached (2MB). Please try again tomorrow.');
+                throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
             }
             const error = await response.json();
             throw new Error(error.error || 'Upload failed');
@@ -577,7 +577,7 @@ async function handleConvert() {
     
     // Abort early if daily limit reached
     if (await isDailyLimitReached()) {
-        showError('Daily limit reached (2MB). Please try again tomorrow.');
+        showError('Daily limit reached (2GB). Please try again tomorrow.');
         // Reset button state
         convertBtn.disabled = false;
         convertBtn.querySelector('.btn-text').style.display = 'block';
@@ -721,7 +721,7 @@ async function convertFiles(startTime) {
 async function uploadFile(file) {
     // Check limit before uploading from device
     if (await isDailyLimitReached()) {
-        throw new Error('Daily limit reached (2MB). Please try again tomorrow.');
+        throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
     }
     const formData = new FormData();
     formData.append('files', file);
@@ -734,7 +734,7 @@ async function uploadFile(file) {
         if (!response.ok) {
             if (response.status === 429) {
                 const err = await response.json().catch(() => ({}));
-                const limitError = err.message || 'Daily limit reached (2MB). Please try again tomorrow.';
+                const limitError = err.message || 'Daily limit reached (2GB). Please try again tomorrow.';
                 showError(limitError);
                 throw new Error(limitError);
             }
@@ -769,7 +769,7 @@ async function convertFile(publicId, format) {
     if (!response.ok) {
         if (response.status === 429) {
             const err = await response.json().catch(() => ({}));
-            const limitError = err.message || 'Daily limit reached (2MB). Please try again tomorrow.';
+            const limitError = err.message || 'Daily limit reached (2GB). Please try again tomorrow.';
             showError(limitError);
             throw new Error(limitError);
         }
@@ -979,7 +979,7 @@ async function downloadAllFiles(results) {
         
         // Pre-check daily limit before starting ZIP job
         if (await isDailyLimitReached()) {
-            showError('Daily limit reached (2MB). Please try again tomorrow.');
+            showError('Daily limit reached (2GB). Please try again tomorrow.');
             convertBtn.disabled = false;
             convertBtn.querySelector('.btn-text').style.display = 'block';
             convertBtn.querySelector('.btn-loading').style.display = 'none';
@@ -1017,7 +1017,7 @@ async function downloadAllFiles(results) {
                 convertBtn.querySelector('.btn-loading').style.display = 'none';
                 convertBtn.querySelector('.btn-text').style.display = 'block';
                 convertBtn.disabled = false;
-                showError(outJson.message || 'Daily limit reached (2MB). Please try again tomorrow.');
+                showError(outJson.message || 'Daily limit reached (2GB). Please try again tomorrow.');
                 return;
             }
             throw new Error(outJson.error || 'ZIP job create failed');
@@ -1039,7 +1039,7 @@ async function downloadAllFiles(results) {
                     convertBtn.querySelector('.btn-loading').style.display = 'none';
                     convertBtn.querySelector('.btn-text').style.display = 'block';
                     convertBtn.disabled = false;
-                    showError(stat.message || 'Daily limit reached (2MB). Please try again tomorrow.');
+                    showError(stat.message || 'Daily limit reached (2GB). Please try again tomorrow.');
                     return;
                 }
                 throw new Error('Status poll failed');
@@ -1049,7 +1049,7 @@ async function downloadAllFiles(results) {
                     convertBtn.querySelector('.btn-loading').style.display = 'none';
                     convertBtn.querySelector('.btn-text').style.display = 'block';
                     convertBtn.disabled = false;
-                    showError(stat.message || 'Daily limit reached (2MB). Please try again tomorrow.');
+                    showError(stat.message || 'Daily limit reached (2GB). Please try again tomorrow.');
                     return;
                 }
                 throw new Error('ZIP error: ' + stat.error);
@@ -1079,7 +1079,7 @@ async function downloadAllFiles(results) {
         convertBtn.querySelector('.btn-text').style.display = 'block';
         convertBtn.disabled = false;
         if (error && error.message && error.message.toLowerCase().includes('limit')) {
-            showError('Daily limit reached (2MB). Please try again tomorrow.');
+            showError('Daily limit reached (2GB). Please try again tomorrow.');
             return;
         }
         showError(error.message || 'ZIP download failed');

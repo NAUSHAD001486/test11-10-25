@@ -16,7 +16,7 @@ require('dotenv').config({ path: './config.env' });
 
 // Usage tracking for rate limiting
 const usageTracker = new Map();
-const DAILY_LIMIT = 2 * 1024 * 1024; // 2MB in bytes (testing)
+const DAILY_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
 
 const app = express();
 // Keep-Alive agents for faster Cloudinary GETs over HTTPS
@@ -84,11 +84,11 @@ app.use(helmet({
 // Rate limiting - Apply ONLY to API routes; keep site always browsable
 const limiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1000, // Allow 1000 requests per day (sufficient for testing 2MB)
+  max: 1000, // Allow 1000 requests per day
   message: {
     error: 'Daily usage limit reached',
     message: 'You have reached your daily conversion limit. Please try again tomorrow.',
-    limit: '2MB per day',
+    limit: '2GB per day',
     resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   },
   standardHeaders: true,
@@ -122,8 +122,8 @@ const trackUsage = (req, res, next) => {
   if (usage.bytes >= DAILY_LIMIT) {
     return res.status(429).json({
       error: 'Daily usage limit reached',
-      message: 'You have reached your daily conversion limit of 2MB. Please try again tomorrow.',
-      limit: '2MB per day',
+      message: 'You have reached your daily conversion limit of 2GB. Please try again tomorrow.',
+      limit: '2GB per day',
       used: `${(usage.bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`,
       resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     });
@@ -359,13 +359,13 @@ app.get('/api/usage', (req, res) => {
   const key = `${clientIP}-${today}`;
   
   const usage = usageTracker.get(key) || { bytes: 0, lastReset: Date.now() };
-  const usedMB = (usage.bytes / (1024 * 1024)).toFixed(2);
-  const remainingMB = ((DAILY_LIMIT - usage.bytes) / (1024 * 1024)).toFixed(2);
+  const usedGB = (usage.bytes / (1024 * 1024 * 1024)).toFixed(2);
+  const remainingGB = ((DAILY_LIMIT - usage.bytes) / (1024 * 1024 * 1024)).toFixed(2);
   
   res.json({
-    used: `${usedMB}MB`,
-    remaining: `${remainingMB}MB`,
-    limit: '2MB',
+    used: `${usedGB}GB`,
+    remaining: `${remainingGB}GB`,
+    limit: '2GB',
     percentage: Math.round((usage.bytes / DAILY_LIMIT) * 100),
     resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   });
