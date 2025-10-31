@@ -86,7 +86,6 @@ body {
     padding: 12px 20px; /* Padding around text */
     text-align: center;
     animation: errorSlideDown 0.3s ease-out;
-    /* No background, no border, no shadow - only text */
 }
 
 .error-message {
@@ -97,7 +96,10 @@ body {
     text-align: center;
     margin: 0 auto;
     max-width: 1200px;
-    padding: 0; /* No extra padding on text itself */
+    padding: 10px 20px; /* Padding around text */
+    background: rgba(220, 38, 38, 0.08); /* Subtle transparent red background */
+    border-radius: 8px; /* Rounded corners for professional look */
+    display: inline-block; /* Fit background to text width */
 }
 
 /* Adjust main content padding when error message is shown */
