@@ -1485,12 +1485,15 @@ async function downloadFiles(results) {
         // Hide progress bar during download
         progressContainer.style.display = 'none';
         
-        // Prepare files data for backend
-        const files = results.map(result => ({
-            publicId: result.publicId,
-            format: result.format,
-            originalName: result.originalName
-        }));
+        // Prepare files data for backend - ES5 compatible
+        var files = [];
+        for (var i = 0; i < results.length; i++) {
+            files.push({
+                publicId: results[i].publicId,
+                format: results[i].format,
+                originalName: results[i].originalName
+            });
+        }
         
         // Send download request to backend immediately
         const response = await fetch('/api/download', {
@@ -1523,7 +1526,7 @@ async function downloadFiles(results) {
             }
         }
         
-        console.log(`Downloading: ${filename} (${blob.size} bytes)`);
+        console.log('Downloading: ' + filename + ' (' + blob.size + ' bytes)');
         
         // Create object URL from blob
         const blobUrl = URL.createObjectURL(blob);
