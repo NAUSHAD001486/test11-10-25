@@ -1313,7 +1313,7 @@ select:focus-visible {
     pointer-events: none; /* allow clicks to pass through */
     animation: fadeIn 0.2s ease-in;
     z-index: 2;
-    background: linear-gradient(135deg, #7C3AED 0%, #9F7AEA 100%);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(159, 122, 234, 0.85) 100%);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
     margin: 4px 0;
