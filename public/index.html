@@ -403,12 +403,65 @@
 
     <!-- Main app script - Deferred for better cross-browser compatibility -->
     <script>
-        // Feature detection and polyfills for cross-browser compatibility
+        // Comprehensive polyfills for cross-browser compatibility
         (function() {
+            'use strict';
+            
             // Check for required features
-            if (typeof document.getElementById === 'undefined') {
-                alert('Your browser is not supported. Please update to a modern browser.');
+            if (typeof document === 'undefined' || typeof document.getElementById === 'undefined') {
+                if (typeof alert !== 'undefined') {
+                    alert('Your browser is not supported. Please update to a modern browser.');
+                }
                 return;
+            }
+            
+            // Array.from polyfill (for IE11 and older)
+            if (!Array.from) {
+                Array.from = function(arrayLike) {
+                    var arr = [];
+                    for (var i = 0; i < arrayLike.length; i++) {
+                        arr.push(arrayLike[i]);
+                    }
+                    return arr;
+                };
+            }
+            
+            // forEach polyfill for NodeList (for older browsers)
+            if (NodeList.prototype.forEach === undefined) {
+                NodeList.prototype.forEach = function(callback) {
+                    for (var i = 0; i < this.length; i++) {
+                        callback(this[i], i, this);
+                    }
+                };
+            }
+            
+            // closest polyfill (for older browsers)
+            if (!Element.prototype.closest) {
+                Element.prototype.closest = function(selector) {
+                    var element = this;
+                    while (element && element.nodeType === 1) {
+                        if (element.matches(selector)) {
+                            return element;
+                        }
+                        element = element.parentElement;
+                    }
+                    return null;
+                };
+            }
+            
+            // matches polyfill (for older browsers)
+            if (!Element.prototype.matches) {
+                Element.prototype.matches = 
+                    Element.prototype.matchesSelector || 
+                    Element.prototype.webkitMatchesSelector ||
+                    Element.prototype.mozMatchesSelector ||
+                    Element.prototype.msMatchesSelector ||
+                    function(selector) {
+                        var matches = (this.document || this.ownerDocument).querySelectorAll(selector);
+                        var i = matches.length;
+                        while (--i >= 0 && matches.item(i) !== this) {}
+                        return i > -1;
+                    };
             }
             
             // AddEventListener polyfill for IE8 (if needed)
@@ -416,16 +469,104 @@
                 document.addEventListener = function(type, listener) {
                     document.attachEvent('on' + type, listener);
                 };
+                window.addEventListener = function(type, listener) {
+                    window.attachEvent('on' + type, listener);
+                };
             }
             
-            // Promise polyfill check
+            // Promise polyfill (basic implementation for older browsers)
             if (typeof Promise === 'undefined') {
-                console.warn('Promise not supported - some features may not work');
+                window.Promise = function(executor) {
+                    var self = this;
+                    self.state = 'pending';
+                    self.value = undefined;
+                    self.handlers = [];
+                    
+                    function resolve(result) {
+                        if (self.state === 'pending') {
+                            self.state = 'fulfilled';
+                            self.value = result;
+                            self.handlers.forEach(handle);
+                            self.handlers = null;
+                        }
+                    }
+                    
+                    function reject(error) {
+                        if (self.state === 'pending') {
+                            self.state = 'rejected';
+                            self.value = error;
+                            self.handlers.forEach(handle);
+                            self.handlers = null;
+                        }
+                    }
+                    
+                    function handle(handler) {
+                        if (self.state === 'pending') {
+                            self.handlers.push(handler);
+                        } else {
+                            if (self.state === 'fulfilled' && typeof handler.onFulfilled === 'function') {
+                                handler.onFulfilled(self.value);
+                            }
+                            if (self.state === 'rejected' && typeof handler.onRejected === 'function') {
+                                handler.onRejected(self.value);
+                            }
+                        }
+                    }
+                    
+                    this.then = function(onFulfilled, onRejected) {
+                        return new Promise(function(resolve, reject) {
+                            handle({
+                                onFulfilled: function(result) {
+                                    try {
+                                        resolve(onFulfilled ? onFulfilled(result) : result);
+                                    } catch (ex) {
+                                        reject(ex);
+                                    }
+                                },
+                                onRejected: function(error) {
+                                    try {
+                                        resolve(onRejected ? onRejected(error) : reject(error));
+                                    } catch (ex) {
+                                        reject(ex);
+                                    }
+                                }
+                            });
+                        });
+                    };
+                    
+                    try {
+                        executor(resolve, reject);
+                    } catch (ex) {
+                        reject(ex);
+                    }
+                };
+                
+                Promise.resolve = function(value) {
+                    return new Promise(function(resolve) {
+                        resolve(value);
+                    });
+                };
+                
+                Promise.reject = function(reason) {
+                    return new Promise(function(resolve, reject) {
+                        reject(reason);
+                    });
+                };
             }
             
             // Fetch API polyfill check
             if (typeof fetch === 'undefined') {
-                console.warn('Fetch API not supported - using fallback');
+                console.warn('Fetch API not supported - using XMLHttpRequest fallback');
+            }
+            
+            // requestAnimationFrame polyfill
+            if (!window.requestAnimationFrame) {
+                window.requestAnimationFrame = function(callback) {
+                    return setTimeout(callback, 16);
+                };
+                window.cancelAnimationFrame = function(id) {
+                    clearTimeout(id);
+                };
             }
         })();
     </script>

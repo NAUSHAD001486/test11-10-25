@@ -1,5 +1,6 @@
-// Google Analytics tracking functions
-function trackEvent(eventName, parameters = {}) {
+// Google Analytics tracking functions - ES5 compatible
+function trackEvent(eventName, parameters) {
+    parameters = parameters || {};
     if (typeof gtag !== 'undefined') {
         gtag('event', eventName, parameters);
     }
@@ -132,7 +133,7 @@ function initializeAppFeatures() {
         }
         
         // Language selector initialization
-        const languageSelect = document.getElementById('languageSelect');
+        var languageSelect = document.getElementById('languageSelect');
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
         }
@@ -144,28 +145,31 @@ function initializeAppFeatures() {
     }
 }
 
-// Mobile touch support for better mobile compatibility
+// Mobile touch support for better mobile compatibility - ES5 compatible
 function initializeMobileSupport() {
     // Add touch event support for mobile devices
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    if (('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)) {
         // Mobile device detected - add touch optimizations
         
         // Prevent zoom on double tap for better mobile UX
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
+        var lastTouchEnd = 0;
+        if (document.addEventListener) {
+            document.addEventListener('touchend', function(e) {
+                var now = Date.now();
+                if (now - lastTouchEnd <= 300 && e.preventDefault) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        }
         
-        // Improve touch target sizes for mobile
-        const buttons = document.querySelectorAll('button, .dropdown-item, .format-option');
-        buttons.forEach(function(button) {
+        // Improve touch target sizes for mobile - ES5 compatible
+        var buttons = document.querySelectorAll('button, .dropdown-item, .format-option');
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
             if (button && button.style) {
                 // Ensure minimum touch target size (44x44px recommended by Apple)
-                const minSize = '44px';
+                var minSize = '44px';
                 if (!button.style.minHeight) {
                     button.style.minHeight = minSize;
                 }
@@ -173,28 +177,40 @@ function initializeMobileSupport() {
                     button.style.minWidth = minSize;
                 }
             }
-        });
+        }
     }
 }
 
-// Daily limit check - Cross-browser compatible with fetch fallback
-async function isDailyLimitReached() {
+// Daily limit check - Cross-browser compatible with Promise chains (no async/await)
+function isDailyLimitReached() {
     try {
         // Use fetch with fallback for older browsers
-        let res;
         if (typeof fetch !== 'undefined') {
-            res = await fetch('/api/usage', { cache: 'no-store' });
+            // Use Promise chain instead of async/await for better compatibility
+            return fetch('/api/usage', { cache: 'no-store' })
+                .then(function(res) {
+                    if (!res || !res.ok) return false;
+                    return res.json();
+                })
+                .then(function(data) {
+                    var pct = Number(data.percentage || 0);
+                    return pct >= 100;
+                })
+                .catch(function(e) {
+                    console.error('Error checking daily limit:', e);
+                    return false;
+                });
         } else {
             // Fallback using XMLHttpRequest for older browsers
             return new Promise(function(resolve) {
-                const xhr = new XMLHttpRequest();
+                var xhr = new XMLHttpRequest();
                 xhr.open('GET', '/api/usage', true);
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState === 4) {
                         if (xhr.status === 200) {
                             try {
-                                const data = JSON.parse(xhr.responseText);
-                                const pct = Number(data.percentage || 0);
+                                var data = JSON.parse(xhr.responseText);
+                                var pct = Number(data.percentage || 0);
                                 resolve(pct >= 100);
                             } catch (e) {
                                 resolve(false);
@@ -207,14 +223,9 @@ async function isDailyLimitReached() {
                 xhr.send();
             });
         }
-        
-        if (!res || !res.ok) return false; // fallthrough; don't block if unknown
-        const data = await res.json();
-        const pct = Number(data.percentage || 0);
-        return pct >= 100;
     } catch (e) {
         console.error('Error checking daily limit:', e);
-        return false;
+        return Promise.resolve(false);
     }
 }
 
@@ -226,17 +237,19 @@ function initializeEventListeners() {
         document.addEventListener('click', closeDropdownsOnOutsideClick);
         
         // File source options
-        document.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', handleFileSourceSelection);
-        });
+        var dropdownItems = document.querySelectorAll('.dropdown-item');
+        for (var i = 0; i < dropdownItems.length; i++) {
+            dropdownItems[i].addEventListener('click', handleFileSourceSelection);
+        }
     }
     
     // Format dropdown
     if (formatBtn && formatOptions) {
         formatBtn.addEventListener('click', toggleFormatDropdown);
-        document.querySelectorAll('.format-option').forEach(option => {
-            option.addEventListener('click', handleFormatSelection);
-        });
+        var formatOptions = document.querySelectorAll('.format-option');
+        for (var i = 0; i < formatOptions.length; i++) {
+            formatOptions[i].addEventListener('click', handleFormatSelection);
+        }
     }
     
     // File input
@@ -265,9 +278,16 @@ function initializeEventListeners() {
     }
     
     // Toast close
-    document.querySelectorAll('.toast').forEach(toast => {
-        toast.addEventListener('click', () => hideToast(toast));
-    });
+    var toasts = document.querySelectorAll('.toast');
+    for (var i = 0; i < toasts.length; i++) {
+        (function(toast) {
+            toast.addEventListener('click', function() {
+                if (typeof hideToast === 'function') {
+                    hideToast(toast);
+                }
+            });
+        })(toasts[i]);
+    }
     
     // Language selector - Moved to DOMContentLoaded to prevent Safari issues
     // Initialization is now in DOMContentLoaded handler
@@ -642,32 +662,42 @@ function validateFile(file) {
     return true;
 }
 
-async function processFiles(files) {
+function processFiles(files) {
     // Allow image selection - limit check only on convert button click
     // No limit check here - let images be selected
     
-    const validFiles = [];
-    const errors = [];
+    var validFiles = [];
+    var errors = [];
     
     // Track file upload attempt
-    trackEvent('file_upload_attempt', {
-        file_count: files.length,
-        event_category: 'engagement'
-    });
+    if (typeof trackEvent === 'function') {
+        trackEvent('file_upload_attempt', {
+            file_count: files.length,
+            event_category: 'engagement'
+        });
+    }
     
-    files.forEach(file => {
+    // ES5 compatible loop
+    for (var i = 0; i < files.length; i++) {
         try {
-            validateFile(file);
-            validFiles.push(file);
+            validateFile(files[i]);
+            validFiles.push(files[i]);
         } catch (error) {
-            errors.push(error.message);
+            errors.push(error.message || 'Invalid file');
         }
-    });
+    }
     
     // Show errors
     if (errors.length > 0) {
-        const errorMsg = errors.length === 1 ? errors[0] : `${errors.length} files have errors. First: ${errors[0]}`;
-        showError(errorMsg);
+        var errorMsg;
+        if (errors.length === 1) {
+            errorMsg = errors[0];
+        } else {
+            errorMsg = errors.length + ' files have errors. First: ' + errors[0];
+        }
+        if (typeof showError === 'function') {
+            showError(errorMsg);
+        }
     }
     
     if (validFiles.length === 0) return;
@@ -680,9 +710,11 @@ async function processFiles(files) {
     }
     
     // Add valid files to state
-    validFiles.forEach(file => {
-        const fileId = generateFileId();
-        const fileObj = {
+    // ES5 compatible loop
+    for (var i = 0; i < validFiles.length; i++) {
+        var file = validFiles[i];
+        var fileId = generateFileId();
+        var fileObj = {
             id: fileId,
             file: file,
             name: file.name,
@@ -692,12 +724,17 @@ async function processFiles(files) {
         };
         
         uploadedFiles.push(fileObj);
-    });
+    }
     
     updateFileList();
     updateUI();
     
-    const successMessage = validFiles.length === 1 ? 'File added successfully' : `${validFiles.length} files added successfully`;
+    var successMessage;
+    if (validFiles.length === 1) {
+        successMessage = 'File added successfully';
+    } else {
+        successMessage = validFiles.length + ' files added successfully';
+    }
     // Success: ${successMessage}
 }
 
@@ -741,12 +778,17 @@ function clearAllFiles() {
 }
 
 function updateFileList() {
+    if (!fileListContainer) return;
     fileListContainer.innerHTML = '';
     
-    uploadedFiles.forEach(fileObj => {
-        const fileItem = createFileItem(fileObj);
-        fileListContainer.appendChild(fileItem);
-    });
+    // ES5 compatible loop
+    for (var i = 0; i < uploadedFiles.length; i++) {
+        var fileObj = uploadedFiles[i];
+        var fileItem = createFileItem(fileObj);
+        if (fileItem && fileListContainer.appendChild) {
+            fileListContainer.appendChild(fileItem);
+        }
+    }
     
     fileListContainer.classList.add('show');
 }
@@ -1599,16 +1641,26 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Error handling
-window.addEventListener('error', function(e) {
-    console.error('Global error:', e.error);
-    // An unexpected error occurred
-});
-
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('Unhandled promise rejection:', e.reason);
-    // An unexpected error occurred
-});
+// Error handling - Cross-browser compatible
+if (window.addEventListener) {
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error || e.message || 'Unknown error');
+        // Prevent error from breaking the page
+        e.preventDefault = e.preventDefault || function() {};
+        return true; // Prevent default error handling
+    }, true);
+    
+    // Promise rejection handler (if supported)
+    if (typeof Promise !== 'undefined' && window.addEventListener) {
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason || 'Unknown rejection');
+            // Prevent default behavior
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+        });
+    }
+}
 
 // PWA install prompt
 let deferredPrompt;
@@ -1626,37 +1678,62 @@ function showInstallPrompt() {
 }
 
 // Offline handling
-window.addEventListener('online', () => {
-    // Connection restored
-});
+// Online/offline handlers - ES5 compatible
+if (window.addEventListener) {
+    window.addEventListener('online', function() {
+        // Connection restored
+        console.log('Connection restored');
+    });
 
-window.addEventListener('offline', () => {
-    // You are offline. Some features may not work.
-});
+    window.addEventListener('offline', function() {
+        // You are offline. Some features may not work.
+        console.log('You are offline. Some features may not work.');
+    });
+}
 
-// FAQ functionality
+// FAQ functionality - ES5 compatible
 function initializeFAQ() {
-    const faqItems = document.querySelectorAll('.faq-item');
+    var faqItems = document.querySelectorAll('.faq-item');
     
-    faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        
-        question.addEventListener('click', () => {
-            const isActive = item.classList.contains('active');
+    for (var i = 0; i < faqItems.length; i++) {
+        (function(item) {
+            var question = item.querySelector('.faq-question');
+            if (!question) return;
             
-            // Close all other FAQ items
-            faqItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('active');
+            question.addEventListener('click', function() {
+                var isActive = item.classList && item.classList.contains('active');
+                if (!isActive && item.className) {
+                    // Fallback check
+                    isActive = item.className.indexOf('active') > -1;
+                }
+                
+                // Close all other FAQ items
+                for (var j = 0; j < faqItems.length; j++) {
+                    if (faqItems[j] !== item) {
+                        if (faqItems[j].classList) {
+                            faqItems[j].classList.remove('active');
+                        } else {
+                            // Fallback for IE
+                            faqItems[j].className = faqItems[j].className.replace('active', '').trim();
+                        }
+                    }
+                }
+                
+                // Toggle current item
+                if (isActive) {
+                    if (item.classList) {
+                        item.classList.remove('active');
+                    } else {
+                        item.className = item.className.replace('active', '').trim();
+                    }
+                } else {
+                    if (item.classList) {
+                        item.classList.add('active');
+                    } else {
+                        item.className = (item.className + ' active').trim();
+                    }
                 }
             });
-            
-            // Toggle current item
-            if (isActive) {
-                item.classList.remove('active');
-            } else {
-                item.classList.add('active');
-            }
-        });
-    });
+        })(faqItems[i]);
+    }
 }
