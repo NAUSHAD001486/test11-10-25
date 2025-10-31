@@ -62,19 +62,62 @@ function initializeDOMElements() {
     return true;
 }
 
-// Initialize app - Safely handle Safari compatibility
-document.addEventListener('DOMContentLoaded', function() {
+// Cross-browser DOM ready function
+function domReady(fn) {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(fn, 1);
+    } else {
+        if (document.addEventListener) {
+            document.addEventListener('DOMContentLoaded', fn);
+        } else if (document.attachEvent) {
+            // IE8 fallback
+            document.attachEvent('onreadystatechange', function() {
+                if (document.readyState === 'complete') {
+                    fn();
+                }
+            });
+        }
+    }
+}
+
+// Initialize app - Cross-browser and mobile compatible
+domReady(function() {
     try {
-        // Initialize DOM elements first
-        if (!initializeDOMElements()) {
-            console.error('Failed to initialize DOM elements');
-            return;
+        // Wait a bit for all elements to be fully loaded (Safari fix)
+        setTimeout(function() {
+            // Initialize DOM elements first
+            if (!initializeDOMElements()) {
+                console.error('Failed to initialize DOM elements');
+                // Retry once after a short delay
+                setTimeout(function() {
+                    if (!initializeDOMElements()) {
+                        console.error('Critical DOM elements still not found');
+                        return;
+                    }
+                    initializeAppFeatures();
+                }, 100);
+                return;
+            }
+            initializeAppFeatures();
+        }, 50);
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        // Show user-friendly error message
+        if (typeof alert !== 'undefined') {
+            alert('An error occurred while loading the page. Please refresh.');
+        }
+    }
+});
+
+// Separate function for initializing app features
+function initializeAppFeatures() {
+    try {
+        // Track page view (only if gtag is available)
+        if (typeof trackPageView === 'function') {
+            trackPageView('Love U Convert - WebP to PNG Converter');
         }
         
-        // Track page view (only if gtag is available)
-        trackPageView('Love U Convert - WebP to PNG Converter');
-        
-        // Initialize features safely
+        // Initialize features safely with feature detection
         if (typeof initializeEventListeners === 'function') {
             initializeEventListeners();
         }
@@ -93,22 +136,84 @@ document.addEventListener('DOMContentLoaded', function() {
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
         }
+        
+        // Mobile touch events support
+        initializeMobileSupport();
     } catch (error) {
-        console.error('Error initializing app:', error);
-        // Show user-friendly error message
-        alert('An error occurred while loading the page. Please refresh.');
+        console.error('Error initializing app features:', error);
     }
-});
+}
 
-// Daily limit check
+// Mobile touch support for better mobile compatibility
+function initializeMobileSupport() {
+    // Add touch event support for mobile devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        // Mobile device detected - add touch optimizations
+        
+        // Prevent zoom on double tap for better mobile UX
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Improve touch target sizes for mobile
+        const buttons = document.querySelectorAll('button, .dropdown-item, .format-option');
+        buttons.forEach(function(button) {
+            if (button && button.style) {
+                // Ensure minimum touch target size (44x44px recommended by Apple)
+                const minSize = '44px';
+                if (!button.style.minHeight) {
+                    button.style.minHeight = minSize;
+                }
+                if (!button.style.minWidth) {
+                    button.style.minWidth = minSize;
+                }
+            }
+        });
+    }
+}
+
+// Daily limit check - Cross-browser compatible with fetch fallback
 async function isDailyLimitReached() {
     try {
-        const res = await fetch('/api/usage', { cache: 'no-store' });
-        if (!res.ok) return false; // fallthrough; don't block if unknown
+        // Use fetch with fallback for older browsers
+        let res;
+        if (typeof fetch !== 'undefined') {
+            res = await fetch('/api/usage', { cache: 'no-store' });
+        } else {
+            // Fallback using XMLHttpRequest for older browsers
+            return new Promise(function(resolve) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/usage', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                const pct = Number(data.percentage || 0);
+                                resolve(pct >= 100);
+                            } catch (e) {
+                                resolve(false);
+                            }
+                        } else {
+                            resolve(false);
+                        }
+                    }
+                };
+                xhr.send();
+            });
+        }
+        
+        if (!res || !res.ok) return false; // fallthrough; don't block if unknown
         const data = await res.json();
         const pct = Number(data.percentage || 0);
         return pct >= 100;
-    } catch {
+    } catch (e) {
+        console.error('Error checking daily limit:', e);
         return false;
     }
 }
@@ -245,18 +350,29 @@ function hideLanguageMessage() {
     }
 }
 
-// Scroll handler for header
+// Scroll handler for header - Cross-browser compatible
 function initializeScrollHandler() {
-    let lastScrollY = window.scrollY;
+    if (!header) return;
+    
+    // Cross-browser scroll position detection
+    function getScrollY() {
+        return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    
+    let lastScrollY = getScrollY();
     let ticking = false;
     
     function updateHeader() {
-        const currentScrollY = window.scrollY;
+        const currentScrollY = getScrollY();
         
         if (currentScrollY > lastScrollY && currentScrollY > 100) {
-            header.classList.add('hidden');
+            if (header && header.classList) {
+                header.classList.add('hidden');
+            }
         } else {
-            header.classList.remove('hidden');
+            if (header && header.classList) {
+                header.classList.remove('hidden');
+            }
         }
         
         lastScrollY = currentScrollY;
@@ -265,42 +381,95 @@ function initializeScrollHandler() {
     
     function requestTick() {
         if (!ticking) {
-            requestAnimationFrame(updateHeader);
+            // Use requestAnimationFrame with fallback
+            if (window.requestAnimationFrame) {
+                window.requestAnimationFrame(updateHeader);
+            } else {
+                // Fallback for older browsers
+                setTimeout(updateHeader, 16);
+            }
             ticking = true;
         }
     }
     
-    window.addEventListener('scroll', requestTick);
-}
-
-// Service worker registration
-function initializeServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('SW registered: ', registration);
-                })
-                .catch(registrationError => {
-                    console.log('SW registration failed: ', registrationError);
-                });
-        });
+    // Cross-browser scroll event
+    if (window.addEventListener) {
+        window.addEventListener('scroll', requestTick, { passive: true });
+    } else if (window.attachEvent) {
+        window.attachEvent('onscroll', requestTick);
     }
 }
 
-// File source dropdown
+// Service worker registration - Cross-browser compatible
+function initializeServiceWorker() {
+    // Check if service worker is supported
+    if ('serviceWorker' in navigator) {
+        // Wait for page to fully load before registering SW
+        if (window.addEventListener) {
+            window.addEventListener('load', function() {
+                try {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(function(registration) {
+                            console.log('SW registered: ', registration);
+                        })
+                        .catch(function(registrationError) {
+                            console.log('SW registration failed: ', registrationError);
+                            // Silently fail - SW is optional
+                        });
+                } catch (e) {
+                    console.log('SW registration error: ', e);
+                }
+            });
+        }
+    }
+}
+
+// File source dropdown - Cross-browser compatible with null checks
 function toggleFileSourceDropdown(e) {
-    e.stopPropagation();
-    fileSourceDropdown.classList.toggle('show');
+    if (!e || !fileSourceDropdown) return;
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    } else if (e.cancelBubble !== undefined) {
+        e.cancelBubble = true; // IE fallback
+    }
+    if (fileSourceDropdown.classList) {
+        fileSourceDropdown.classList.toggle('show');
+    } else {
+        // IE fallback
+        const classes = fileSourceDropdown.className.split(' ');
+        if (classes.indexOf('show') > -1) {
+            fileSourceDropdown.className = classes.filter(c => c !== 'show').join(' ');
+        } else {
+            fileSourceDropdown.className += ' show';
+        }
+    }
 }
 
 function closeDropdownsOnOutsideClick(e) {
-    if (!selectFilesBtn.contains(e.target) && !fileSourceDropdown.contains(e.target)) {
-        fileSourceDropdown.classList.remove('show');
+    if (!e || !e.target) return;
+    
+    // Close file source dropdown
+    if (selectFilesBtn && fileSourceDropdown) {
+        if (!selectFilesBtn.contains(e.target) && !fileSourceDropdown.contains(e.target)) {
+            if (fileSourceDropdown.classList) {
+                fileSourceDropdown.classList.remove('show');
+            } else {
+                // IE fallback
+                fileSourceDropdown.className = fileSourceDropdown.className.replace('show', '').trim();
+            }
+        }
     }
     
-    if (!formatBtn.contains(e.target) && !formatOptions.contains(e.target)) {
-        formatOptions.classList.remove('show');
+    // Close format dropdown
+    if (formatBtn && formatOptions) {
+        if (!formatBtn.contains(e.target) && !formatOptions.contains(e.target)) {
+            if (formatOptions.classList) {
+                formatOptions.classList.remove('show');
+            } else {
+                // IE fallback
+                formatOptions.className = formatOptions.className.replace('show', '').trim();
+            }
+        }
     }
 }
 
@@ -344,27 +513,107 @@ function handleFormatSelection(e) {
 }
 
 // File handling
+// File selection handler - Cross-browser compatible
 function handleFileSelection(e) {
-    const files = Array.from(e.target.files);
-    processFiles(files);
+    if (!e || !e.target || !e.target.files) return;
+    try {
+        let files;
+        // Cross-browser file array conversion
+        if (Array.from) {
+            files = Array.from(e.target.files);
+        } else {
+            // IE fallback
+            files = [];
+            for (let i = 0; i < e.target.files.length; i++) {
+                files.push(e.target.files[i]);
+            }
+        }
+        
+        if (files.length > 0 && typeof processFiles === 'function') {
+            processFiles(files);
+        }
+    } catch (err) {
+        console.error('Error in handleFileSelection:', err);
+        if (typeof showError === 'function') {
+            showError('Error selecting files. Please try again.');
+        }
+    }
 }
 
+// Drag and drop handlers - Cross-browser compatible with error handling
 function handleDragOver(e) {
-    e.preventDefault();
-    uploadBox.classList.add('dragover');
+    if (!e || !uploadBox) return;
+    try {
+        e.preventDefault();
+        e.stopPropagation();
+        if (uploadBox.classList) {
+            uploadBox.classList.add('dragover');
+        } else {
+            // IE fallback
+            uploadBox.className += ' dragover';
+        }
+    } catch (err) {
+        console.error('Error in handleDragOver:', err);
+    }
 }
 
 function handleDragLeave(e) {
-    e.preventDefault();
-    uploadBox.classList.remove('dragover');
+    if (!e || !uploadBox) return;
+    try {
+        e.preventDefault();
+        e.stopPropagation();
+        if (uploadBox.classList) {
+            uploadBox.classList.remove('dragover');
+        } else {
+            // IE fallback
+            uploadBox.className = uploadBox.className.replace('dragover', '').trim();
+        }
+    } catch (err) {
+        console.error('Error in handleDragLeave:', err);
+    }
 }
 
 function handleDrop(e) {
-    e.preventDefault();
-    uploadBox.classList.remove('dragover');
-    
-    const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
+    if (!e || !uploadBox) return;
+    try {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (uploadBox.classList) {
+            uploadBox.classList.remove('dragover');
+        } else {
+            // IE fallback
+            uploadBox.className = uploadBox.className.replace('dragover', '').trim();
+        }
+        
+        // Get files from dataTransfer
+        if (!e.dataTransfer || !e.dataTransfer.files) {
+            console.error('No files in drop event');
+            return;
+        }
+        
+        // Cross-browser file array conversion
+        const files = e.dataTransfer.files;
+        let fileArray;
+        if (Array.from) {
+            fileArray = Array.from(files);
+        } else {
+            // IE fallback
+            fileArray = [];
+            for (let i = 0; i < files.length; i++) {
+                fileArray.push(files[i]);
+            }
+        }
+        
+        if (fileArray.length > 0 && typeof processFiles === 'function') {
+            processFiles(fileArray);
+        }
+    } catch (err) {
+        console.error('Error in handleDrop:', err);
+        if (typeof showError === 'function') {
+            showError('Error dropping files. Please try selecting files instead.');
+        }
+    }
 }
 
 function handleUploadBoxClick(e) {

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="description" content="Convert WebP to PNG and other image formats for free. The best webp to png converter - convert webp file to png instantly with Love U Convert.">
     <meta name="keywords" content="webp to png, webp to png converter, webp in png, convert webp file to png, image converter, webp converter, png converter, free converter, online converter">
     <meta name="author" content="Love U Convert">
@@ -401,6 +401,34 @@
     <!-- Hidden file input -->
     <input type="file" id="fileInput" multiple accept=".png,.bmp,.eps,.gif,.ico,.jpeg,.jpg,.odd,.svg,.psd,.tga,.tiff,.webp" style="display: none;">
 
-    <script src="/js/app.js"></script>
+    <!-- Main app script - Deferred for better cross-browser compatibility -->
+    <script>
+        // Feature detection and polyfills for cross-browser compatibility
+        (function() {
+            // Check for required features
+            if (typeof document.getElementById === 'undefined') {
+                alert('Your browser is not supported. Please update to a modern browser.');
+                return;
+            }
+            
+            // AddEventListener polyfill for IE8 (if needed)
+            if (!document.addEventListener && document.attachEvent) {
+                document.addEventListener = function(type, listener) {
+                    document.attachEvent('on' + type, listener);
+                };
+            }
+            
+            // Promise polyfill check
+            if (typeof Promise === 'undefined') {
+                console.warn('Promise not supported - some features may not work');
+            }
+            
+            // Fetch API polyfill check
+            if (typeof fetch === 'undefined') {
+                console.warn('Fetch API not supported - using fallback');
+            }
+        })();
+    </script>
+    <script src="/js/app.js" defer></script>
 </body>
 </html>

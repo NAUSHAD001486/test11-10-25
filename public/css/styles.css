@@ -33,8 +33,14 @@ body {
     line-height: 1.6;
     color: var(--text-primary);
     background: var(--background);
+    /* Font smoothing for better cross-browser rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent text selection issues on mobile */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    /* Improve scrolling on mobile */
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Header Styles */
@@ -47,11 +53,22 @@ body {
     background: var(--background);
     border-bottom: 1px solid var(--border-color);
     z-index: 1000;
+    /* Cross-browser transitions */
+    -webkit-transition: var(--transition);
+    -moz-transition: var(--transition);
+    -o-transition: var(--transition);
     transition: var(--transition);
+    /* Cross-browser transforms */
+    -webkit-transform: translateY(0);
+    -moz-transform: translateY(0);
+    -ms-transform: translateY(0);
     transform: translateY(0);
 }
 
 .header.hidden {
+    -webkit-transform: translateY(-100%);
+    -moz-transform: translateY(-100%);
+    -ms-transform: translateY(-100%);
     transform: translateY(-100%);
 }
 
