@@ -1153,14 +1153,14 @@ function hideError() {
     }
 }
 
-// Scroll detection - message moves with page
+// Scroll detection - hide/show message in header area
 function handleScroll() {
     if (!errorMessageContainer || !messageVisible) {
         lastScrollY = window.scrollY;
         return;
     }
     
-    const currentScrollY = window.scrollY;
+    const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     const elapsedTime = messageStartTime ? (Date.now() - messageStartTime) : 0;
     
     // Check if 5 seconds have passed
@@ -1172,22 +1172,20 @@ function handleScroll() {
     
     // If message is still within 5 seconds window
     if (elapsedTime < 5000) {
-        // Message moves with page scroll (up)
-        if (currentScrollY > 0) {
-            // Change from fixed to absolute positioning so it moves with scroll
-            errorMessageContainer.style.position = 'absolute';
-            errorMessageContainer.style.top = (50 + currentScrollY) + 'px';
-        } else {
-            // At top - keep it fixed
-            errorMessageContainer.style.position = 'fixed';
-            errorMessageContainer.style.top = '50px';
-        }
+        // Always keep message fixed in header area (not moving to footer)
+        errorMessageContainer.style.position = 'fixed';
+        errorMessageContainer.style.top = '50px';
+        errorMessageContainer.style.left = '0';
+        errorMessageContainer.style.right = '0';
         
-        // If user scrolls back up to top, ensure message is visible
-        if (currentScrollY <= 50 && errorMessageContainer.style.display === 'none') {
+        // Hide message when user scrolls up (away from top)
+        // Show message when user scrolls back down to top
+        if (currentScrollY > 100) {
+            // User scrolled up - hide message in header section
+            errorMessageContainer.style.display = 'none';
+        } else {
+            // User is at or near top (within 100px) - show message
             errorMessageContainer.style.display = 'block';
-            errorMessageContainer.style.position = 'fixed';
-            errorMessageContainer.style.top = '50px';
         }
     }
     
