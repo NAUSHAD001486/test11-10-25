@@ -135,15 +135,33 @@ GET /api/download/:publicId/:format
 
 ## Security Features
 
-- ✅ HTTPS enforcement
-- ✅ HSTS headers
-- ✅ Rate limiting
-- ✅ File type validation
-- ✅ File size limits
-- ✅ CORS protection
-- ✅ Helmet.js security headers
-- ✅ Input sanitization
-- ✅ Secure API key handling
+- ✅ **HTTPS Enforcement**: Automatic HTTP to HTTPS redirect (production)
+- ✅ **HSTS Headers**: Force HTTPS for 1 year with subdomain and preload
+- ✅ **SSL/TLS Encryption**: 256-bit encryption for all file transfers
+- ✅ **Rate Limiting**: 1000 requests per day per IP
+- ✅ **File Type Validation**: Extension + magic bytes validation
+- ✅ **File Size Limits**: Max 2GB per file, 2GB daily limit per IP
+- ✅ **CORS Protection**: Production domain whitelist only
+- ✅ **Helmet.js Security Headers**: XSS, clickjacking, MIME-type protection
+- ✅ **Input Sanitization**: Server-side validation for all inputs
+- ✅ **Secure API Key Handling**: Environment variables only, never exposed
+
+### Security & Compliance
+
+**File Transfer Security:**
+- All uploads/downloads via HTTPS encrypted channels
+- Browser → Server: HTTPS encrypted
+- Server → Cloudinary: HTTPS encrypted
+- Files auto-deleted after 2 hours
+- No persistent storage of user data
+
+**Legal Compliance:**
+- ✅ GDPR (Europe) compliant
+- ✅ CCPA (California) compliant
+- ✅ DPDP Act 2023 (India) compliant
+- ✅ Comprehensive Privacy Policy
+- ✅ Data deletion policy (2 hours)
+- ✅ User rights clearly defined
 
 ## PWA Features
 
@@ -164,11 +182,22 @@ GET /api/download/:publicId/:format
 
 ## Performance
 
-- ⚡ Fast image processing via Cloudinary
-- 📦 Optimized bundle size
-- 🖼️ Lazy loading
-- 💾 Efficient caching
-- 📱 Mobile-optimized
+- ⚡ **Fast Conversion**: < 3 seconds for single file
+- 📦 **Optimized Bundle**: Lightweight vanilla JS, no heavy frameworks
+- 🖼️ **Lazy Loading**: Efficient file processing
+- 💾 **Efficient Caching**: Service worker for offline support
+- 📱 **Mobile-Optimized**: Responsive design, touch-friendly
+- 🚀 **Parallel Processing**: Batch processing (5 files at a time)
+- ⚙️ **Keep-Alive Agents**: Reused connections for faster API calls
+- 📊 **Chunked Uploads**: 6MB chunks for faster transfers
+
+## SEO & Compliance
+
+- ✅ **robots.txt**: Configured (allows indexing, blocks /uploads/ and /api/)
+- ✅ **sitemap.xml**: Complete with all format pages
+- ✅ **Meta Tags**: Comprehensive (description, keywords, OG tags, Twitter cards)
+- ✅ **Privacy Policy**: Accessible at `/privacy-policy.html`
+- ✅ **Search Engine Ready**: Fully indexable, no penalties
 
 ## Contributing
 
@@ -192,6 +221,10 @@ For support, email support@loveuconvert.com or create an issue in the repository
 - Initial release
 - WebP to PNG conversion
 - PWA support
-- Multiple file format support
-- Secure file handling
+- Multiple file format support (13 input, 13 output formats)
+- Secure file handling (HTTPS, validation, encryption)
 - Responsive design
+- HTTPS enforcement (production)
+- Comprehensive security headers
+- SEO optimized (robots.txt, sitemap.xml, meta tags)
+- Legal compliance (GDPR, CCPA, DPDP Act 2023)

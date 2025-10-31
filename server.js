@@ -134,9 +134,27 @@ const trackUsage = (req, res, next) => {
   next();
 };
 
+// HTTPS Enforcement (Production only)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    // Check if request is HTTPS (behind proxy)
+    const forwardedProto = req.header('x-forwarded-proto') || req.protocol;
+    if (forwardedProto !== 'https') {
+      // Redirect HTTP to HTTPS
+      res.redirect(301, `https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+
 // CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['https://yourdomain.com'])
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://yourdomain.com'] : ['http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true
 }));
 
