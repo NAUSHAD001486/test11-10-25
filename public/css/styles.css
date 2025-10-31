@@ -84,7 +84,7 @@ body {
     right: 0;
     width: 100%; /* Full width from left to right */
     z-index: 999;
-    padding: 12px 20px; /* Padding around text */
+    padding: 16px 20px; /* Increased vertical padding (10% extra) for better spacing */
     text-align: center;
     animation: errorSlideDown 0.3s ease-out;
     transition: top 0.2s ease-out;
@@ -99,7 +99,7 @@ body {
     text-align: center;
     margin: 0 auto;
     max-width: 1200px;
-    padding: 10px 20px; /* Padding around text */
+    padding: 8px 20px; /* Reduced padding since container has more padding */
     /* Background removed from here - now on container */
     border-radius: 8px; /* Rounded corners for professional look */
     display: inline-block; /* Text width only */
