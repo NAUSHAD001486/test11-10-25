@@ -1153,39 +1153,63 @@ function hideError() {
 
 // Scroll detection for auto-hide
 function handleScroll() {
-    const currentScrollY = window.scrollY;
+    if (!errorMessageContainer) return;
     
-    // If error message is visible
-    if (errorMessageContainer && errorMessageContainer.style.display !== 'none') {
-        // If user scrolled down (away from top) or up significantly
-        if (currentScrollY > lastScrollY && currentScrollY > 100) {
-            // User is scrolling down - hide message after 2 seconds
-            if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
-            
-            scrollHideTimeout = setTimeout(() => {
+    // Check if error message is visible (handle both inline style and computed style)
+    const isVisible = errorMessageContainer.style.display !== 'none' && 
+                      getComputedStyle(errorMessageContainer).display !== 'none';
+    
+    if (!isVisible) {
+        lastScrollY = window.scrollY;
+        return;
+    }
+    
+    const currentScrollY = window.scrollY;
+    const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+    
+    // Only act if there's significant scroll movement (avoid tiny movements)
+    if (scrollDelta < 10) {
+        return;
+    }
+    
+    // If user scrolled away from top (down or up significantly)
+    if (currentScrollY > 100) {
+        // User scrolled down away from top - hide message after 2 seconds
+        if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
+        
+        scrollHideTimeout = setTimeout(() => {
+            if (errorMessageContainer && 
+                errorMessageContainer.style.display !== 'none' && 
+                getComputedStyle(errorMessageContainer).display !== 'none') {
                 hideError();
-            }, 2000);
-        } else if (currentScrollY < lastScrollY && currentScrollY > 50) {
-            // User scrolled up but not at top - hide after 2 seconds
-            if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
-            
-            scrollHideTimeout = setTimeout(() => {
-                hideError();
-            }, 2000);
-        } else if (currentScrollY <= 50) {
-            // User is at top - clear scroll hide timeout
-            if (scrollHideTimeout) {
-                clearTimeout(scrollHideTimeout);
-                scrollHideTimeout = null;
             }
+        }, 2000);
+    } else if (currentScrollY <= 50) {
+        // User is at top - clear scroll hide timeout and cancel auto-hide
+        if (scrollHideTimeout) {
+            clearTimeout(scrollHideTimeout);
+            scrollHideTimeout = null;
         }
     }
     
     lastScrollY = currentScrollY;
 }
 
-// Add scroll event listener
-window.addEventListener('scroll', handleScroll, { passive: true });
+// Initialize scroll listener after DOM is ready
+function initializeScrollListener() {
+    // Set initial scroll position
+    lastScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+}
+
+// Call initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeScrollListener);
+} else {
+    initializeScrollListener();
+}
 
 // Utility functions
 function formatFileSize(bytes) {
