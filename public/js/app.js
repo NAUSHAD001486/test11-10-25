@@ -15,23 +15,23 @@ function trackPageView(pageName) {
     }
 }
 
-// Global state
-let uploadedFiles = [];
-let convertedFiles = [];
-let selectedFormat = 'PNG';
-let isConverting = false;
-let isDownloaded = false;
+// Global state - ES5 compatible for Safari
+var uploadedFiles = [];
+var convertedFiles = [];
+var selectedFormat = 'PNG';
+var isConverting = false;
+var isDownloaded = false;
 
-// Lightweight format validation
-const SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
-const SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
+// Lightweight format validation - ES5 compatible
+var SUPPORTED_INPUT_FORMATS = ['png', 'bmp', 'eps', 'gif', 'ico', 'jpeg', 'jpg', 'odd', 'svg', 'psd', 'tga', 'tiff', 'webp'];
+var SUPPORTED_OUTPUT_FORMATS = ['PNG', 'BMP', 'EPS', 'GIF', 'ICO', 'JPEG', 'JPG', 'ODD', 'SVG', 'PSD', 'TGA', 'TIFF', 'WebP'];
 
-// DOM elements - Initialize safely to prevent Safari crashes
-let header, uploadBox, selectFilesBtn, fileSourceDropdown, fileListContainer;
-let outputSettings, formatBtn, formatOptions, convertBtn;
-let progressContainer, progressFill, progressText;
-let errorMessageContainer, errorMessage;
-let fileInput, urlModal, urlInput, urlSubmit, modalClose;
+// DOM elements - Initialize safely to prevent Safari crashes - ES5 compatible
+var header, uploadBox, selectFilesBtn, fileSourceDropdown, fileListContainer;
+var outputSettings, formatBtn, formatOptions, convertBtn;
+var progressContainer, progressFill, progressText;
+var errorMessageContainer, errorMessage;
+var fileInput, urlModal, urlInput, urlSubmit, modalClose;
 
 // Safely initialize DOM elements
 function initializeDOMElements() {
@@ -110,26 +110,26 @@ domReady(function() {
     }
 });
 
-// Separate function for initializing app features
+// Separate function for initializing app features - Safari compatible
 function initializeAppFeatures() {
     try {
         // Track page view (only if gtag is available)
         if (typeof trackPageView === 'function') {
-            trackPageView('Love U Convert - WebP to PNG Converter');
+    trackPageView('Love U Convert - WebP to PNG Converter');
         }
-        
+    
         // Initialize features safely with feature detection
         if (typeof initializeEventListeners === 'function') {
-            initializeEventListeners();
+    initializeEventListeners();
         }
         if (typeof initializeScrollHandler === 'function') {
-            initializeScrollHandler();
+    initializeScrollHandler();
         }
         if (typeof initializeServiceWorker === 'function') {
-            initializeServiceWorker();
+    initializeServiceWorker();
         }
         if (typeof initializeFAQ === 'function') {
-            initializeFAQ();
+    initializeFAQ();
         }
         
         // Language selector initialization
@@ -139,9 +139,23 @@ function initializeAppFeatures() {
         }
         
         // Mobile touch events support
-        initializeMobileSupport();
+        if (typeof initializeMobileSupport === 'function') {
+            initializeMobileSupport();
+        }
     } catch (error) {
         console.error('Error initializing app features:', error);
+        // Safari fallback - retry initialization
+        if (typeof window.setTimeout === 'function') {
+            setTimeout(function() {
+                try {
+                    if (typeof initializeEventListeners === 'function') {
+                        initializeEventListeners();
+                    }
+                } catch (e) {
+                    console.error('Retry initialization failed:', e);
+                }
+            }, 200);
+        }
     }
 }
 
@@ -194,11 +208,11 @@ function isDailyLimitReached() {
                 })
                 .then(function(data) {
                     var pct = Number(data.percentage || 0);
-                    return pct >= 100;
+        return pct >= 100;
                 })
                 .catch(function(e) {
                     console.error('Error checking daily limit:', e);
-                    return false;
+        return false;
                 });
         } else {
             // Fallback using XMLHttpRequest for older browsers
@@ -233,10 +247,10 @@ function isDailyLimitReached() {
 function initializeEventListeners() {
     // File source dropdown
     if (selectFilesBtn && fileSourceDropdown) {
-        selectFilesBtn.addEventListener('click', toggleFileSourceDropdown);
-        document.addEventListener('click', closeDropdownsOnOutsideClick);
-        
-        // File source options
+    selectFilesBtn.addEventListener('click', toggleFileSourceDropdown);
+    document.addEventListener('click', closeDropdownsOnOutsideClick);
+    
+    // File source options
         var dropdownItems = document.querySelectorAll('.dropdown-item');
         for (var i = 0; i < dropdownItems.length; i++) {
             dropdownItems[i].addEventListener('click', handleFileSourceSelection);
@@ -245,7 +259,7 @@ function initializeEventListeners() {
     
     // Format dropdown
     if (formatBtn && formatOptions) {
-        formatBtn.addEventListener('click', toggleFormatDropdown);
+    formatBtn.addEventListener('click', toggleFormatDropdown);
         var formatOptions = document.querySelectorAll('.format-option');
         for (var i = 0; i < formatOptions.length; i++) {
             formatOptions[i].addEventListener('click', handleFormatSelection);
@@ -254,27 +268,27 @@ function initializeEventListeners() {
     
     // File input
     if (fileInput) {
-        fileInput.addEventListener('change', handleFileSelection);
+    fileInput.addEventListener('change', handleFileSelection);
     }
     
     // Drag and drop
     if (uploadBox) {
-        uploadBox.addEventListener('dragover', handleDragOver);
-        uploadBox.addEventListener('dragleave', handleDragLeave);
-        uploadBox.addEventListener('drop', handleDrop);
-        uploadBox.addEventListener('click', handleUploadBoxClick);
+    uploadBox.addEventListener('dragover', handleDragOver);
+    uploadBox.addEventListener('dragleave', handleDragLeave);
+    uploadBox.addEventListener('drop', handleDrop);
+    uploadBox.addEventListener('click', handleUploadBoxClick);
     }
     
     // Convert button
     if (convertBtn) {
-        convertBtn.addEventListener('click', handleConvert);
+    convertBtn.addEventListener('click', handleConvert);
     }
     
     // URL modal
     if (urlSubmit && modalClose && urlModal) {
-        urlSubmit.addEventListener('click', handleUrlSubmit);
-        modalClose.addEventListener('click', closeUrlModal);
-        urlModal.addEventListener('click', handleModalBackdropClick);
+    urlSubmit.addEventListener('click', handleUrlSubmit);
+    modalClose.addEventListener('click', closeUrlModal);
+    urlModal.addEventListener('click', handleModalBackdropClick);
     }
     
     // Toast close
@@ -387,11 +401,11 @@ function initializeScrollHandler() {
         
         if (currentScrollY > lastScrollY && currentScrollY > 100) {
             if (header && header.classList) {
-                header.classList.add('hidden');
+            header.classList.add('hidden');
             }
         } else {
             if (header && header.classList) {
-                header.classList.remove('hidden');
+            header.classList.remove('hidden');
             }
         }
         
@@ -428,18 +442,18 @@ function initializeServiceWorker() {
         if (window.addEventListener) {
             window.addEventListener('load', function() {
                 try {
-                    navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/sw.js')
                         .then(function(registration) {
-                            console.log('SW registered: ', registration);
-                        })
+                    console.log('SW registered: ', registration);
+                })
                         .catch(function(registrationError) {
-                            console.log('SW registration failed: ', registrationError);
+                    console.log('SW registration failed: ', registrationError);
                             // Silently fail - SW is optional
-                        });
+                });
                 } catch (e) {
                     console.log('SW registration error: ', e);
                 }
-            });
+        });
         }
     }
 }
@@ -448,12 +462,12 @@ function initializeServiceWorker() {
 function toggleFileSourceDropdown(e) {
     if (!e || !fileSourceDropdown) return;
     if (e.stopPropagation) {
-        e.stopPropagation();
+    e.stopPropagation();
     } else if (e.cancelBubble !== undefined) {
         e.cancelBubble = true; // IE fallback
     }
     if (fileSourceDropdown.classList) {
-        fileSourceDropdown.classList.toggle('show');
+    fileSourceDropdown.classList.toggle('show');
     } else {
         // IE fallback
         const classes = fileSourceDropdown.className.split(' ');
@@ -470,9 +484,9 @@ function closeDropdownsOnOutsideClick(e) {
     
     // Close file source dropdown
     if (selectFilesBtn && fileSourceDropdown) {
-        if (!selectFilesBtn.contains(e.target) && !fileSourceDropdown.contains(e.target)) {
+    if (!selectFilesBtn.contains(e.target) && !fileSourceDropdown.contains(e.target)) {
             if (fileSourceDropdown.classList) {
-                fileSourceDropdown.classList.remove('show');
+        fileSourceDropdown.classList.remove('show');
             } else {
                 // IE fallback
                 fileSourceDropdown.className = fileSourceDropdown.className.replace('show', '').trim();
@@ -482,9 +496,9 @@ function closeDropdownsOnOutsideClick(e) {
     
     // Close format dropdown
     if (formatBtn && formatOptions) {
-        if (!formatBtn.contains(e.target) && !formatOptions.contains(e.target)) {
+    if (!formatBtn.contains(e.target) && !formatOptions.contains(e.target)) {
             if (formatOptions.classList) {
-                formatOptions.classList.remove('show');
+        formatOptions.classList.remove('show');
             } else {
                 // IE fallback
                 formatOptions.className = formatOptions.className.replace('show', '').trim();
@@ -550,7 +564,7 @@ function handleFileSelection(e) {
         }
         
         if (files.length > 0 && typeof processFiles === 'function') {
-            processFiles(files);
+    processFiles(files);
         }
     } catch (err) {
         console.error('Error in handleFileSelection:', err);
@@ -564,10 +578,10 @@ function handleFileSelection(e) {
 function handleDragOver(e) {
     if (!e || !uploadBox) return;
     try {
-        e.preventDefault();
+    e.preventDefault();
         e.stopPropagation();
         if (uploadBox.classList) {
-            uploadBox.classList.add('dragover');
+    uploadBox.classList.add('dragover');
         } else {
             // IE fallback
             uploadBox.className += ' dragover';
@@ -580,10 +594,10 @@ function handleDragOver(e) {
 function handleDragLeave(e) {
     if (!e || !uploadBox) return;
     try {
-        e.preventDefault();
+    e.preventDefault();
         e.stopPropagation();
         if (uploadBox.classList) {
-            uploadBox.classList.remove('dragover');
+    uploadBox.classList.remove('dragover');
         } else {
             // IE fallback
             uploadBox.className = uploadBox.className.replace('dragover', '').trim();
@@ -596,11 +610,11 @@ function handleDragLeave(e) {
 function handleDrop(e) {
     if (!e || !uploadBox) return;
     try {
-        e.preventDefault();
+    e.preventDefault();
         e.stopPropagation();
         
         if (uploadBox.classList) {
-            uploadBox.classList.remove('dragover');
+    uploadBox.classList.remove('dragover');
         } else {
             // IE fallback
             uploadBox.className = uploadBox.className.replace('dragover', '').trim();
@@ -671,10 +685,10 @@ function processFiles(files) {
     
     // Track file upload attempt
     if (typeof trackEvent === 'function') {
-        trackEvent('file_upload_attempt', {
-            file_count: files.length,
-            event_category: 'engagement'
-        });
+    trackEvent('file_upload_attempt', {
+        file_count: files.length,
+        event_category: 'engagement'
+    });
     }
     
     // ES5 compatible loop
@@ -786,7 +800,7 @@ function updateFileList() {
         var fileObj = uploadedFiles[i];
         var fileItem = createFileItem(fileObj);
         if (fileItem && fileListContainer.appendChild) {
-            fileListContainer.appendChild(fileItem);
+        fileListContainer.appendChild(fileItem);
         }
     }
     
@@ -903,15 +917,15 @@ function handleModalBackdropClick(e) {
 function handleUrlSubmit() {
     const url = urlInput.value.trim();
     
-        if (!url) {
+    if (!url) {
             showError('Please enter a valid URL');
-            return;
-        }
-        
-        if (!isValidImageUrl(url)) {
+        return;
+    }
+    
+    if (!isValidImageUrl(url)) {
             showError('Please enter a valid image URL');
-            return;
-        }
+        return;
+    }
     
     urlSubmit.disabled = true;
     urlSubmit.textContent = 'Uploading...';
@@ -1153,18 +1167,18 @@ async function uploadFile(file) {
         body: formData
     });
     
-        if (!response.ok) {
-            if (response.status === 429) {
-                const err = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        if (response.status === 429) {
+            const err = await response.json().catch(() => ({}));
                 const limitError = err.message || 'Daily limit reached (2GB). Please try again tomorrow.';
                 showError(limitError);
                 throw new Error(limitError);
-            }
-            const error = await response.json();
+        }
+        const error = await response.json();
             const errorMsg = error.error || 'Upload failed';
             showError(errorMsg);
             throw new Error(errorMsg);
-        }
+    }
     
     const result = await response.json();
     
@@ -1643,7 +1657,7 @@ function formatFileSize(bytes) {
 
 // Error handling - Cross-browser compatible
 if (window.addEventListener) {
-    window.addEventListener('error', function(e) {
+window.addEventListener('error', function(e) {
         console.error('Global error:', e.error || e.message || 'Unknown error');
         // Prevent error from breaking the page
         e.preventDefault = e.preventDefault || function() {};
@@ -1652,7 +1666,7 @@ if (window.addEventListener) {
     
     // Promise rejection handler (if supported)
     if (typeof Promise !== 'undefined' && window.addEventListener) {
-        window.addEventListener('unhandledrejection', function(e) {
+window.addEventListener('unhandledrejection', function(e) {
             console.error('Unhandled promise rejection:', e.reason || 'Unknown rejection');
             // Prevent default behavior
             if (e.preventDefault) {
@@ -1662,15 +1676,21 @@ if (window.addEventListener) {
     }
 }
 
-// PWA install prompt
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
+// PWA install prompt - ES5 compatible for Safari
+var deferredPrompt;
+if (window.addEventListener) {
+    window.addEventListener('beforeinstallprompt', function(e) {
+        if (e.preventDefault) {
     e.preventDefault();
+        }
     deferredPrompt = e;
     
     // Show install button or banner
+        if (typeof showInstallPrompt === 'function') {
     showInstallPrompt();
+        }
 });
+}
 
 function showInstallPrompt() {
     // You can add an install button to the UI here
@@ -1681,14 +1701,14 @@ function showInstallPrompt() {
 // Online/offline handlers - ES5 compatible
 if (window.addEventListener) {
     window.addEventListener('online', function() {
-        // Connection restored
+    // Connection restored
         console.log('Connection restored');
-    });
+});
 
     window.addEventListener('offline', function() {
-        // You are offline. Some features may not work.
+    // You are offline. Some features may not work.
         console.log('You are offline. Some features may not work.');
-    });
+});
 }
 
 // FAQ functionality - ES5 compatible
@@ -1706,8 +1726,8 @@ function initializeFAQ() {
                     // Fallback check
                     isActive = item.className.indexOf('active') > -1;
                 }
-                
-                // Close all other FAQ items
+            
+            // Close all other FAQ items
                 for (var j = 0; j < faqItems.length; j++) {
                     if (faqItems[j] !== item) {
                         if (faqItems[j].classList) {
@@ -1718,22 +1738,22 @@ function initializeFAQ() {
                         }
                     }
                 }
-                
-                // Toggle current item
-                if (isActive) {
+            
+            // Toggle current item
+            if (isActive) {
                     if (item.classList) {
-                        item.classList.remove('active');
-                    } else {
+                item.classList.remove('active');
+            } else {
                         item.className = item.className.replace('active', '').trim();
                     }
                 } else {
                     if (item.classList) {
-                        item.classList.add('active');
+                item.classList.add('active');
                     } else {
                         item.className = (item.className + ' active').trim();
                     }
-                }
-            });
+            }
+        });
         })(faqItems[i]);
     }
 }
