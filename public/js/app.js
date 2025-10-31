@@ -151,23 +151,27 @@ function showLanguageComingSoon() {
         clearTimeout(languageMessageTimeout);
     }
     
-    // Check if message element already exists
-    let messageElement = footerSection.querySelector('.language-coming-soon-message');
-    
-    // If doesn't exist, create it
+    // Ensure footer section is positioning context
+    if (getComputedStyle(footerSection).position === 'static') {
+        footerSection.style.position = 'relative';
+    }
+
+    // Popup element (overlay) — does not affect layout
+    let messageElement = footerSection.querySelector('.language-coming-soon-popup');
     if (!messageElement) {
         messageElement = document.createElement('div');
-        messageElement.className = 'language-coming-soon-message';
+        messageElement.className = 'language-coming-soon-popup';
         messageElement.textContent = 'Coming Soon';
+        footerSection.appendChild(messageElement);
     }
-    
-    // Insert message above "Language" heading
+
+    // Anchor popup just above the language selector box heading without shifting layout
     const languageHeading = footerSection.querySelector('h4');
-    if (languageHeading && messageElement.parentNode !== footerSection) {
-        footerSection.insertBefore(messageElement, languageHeading);
-    }
-    
-    // Show message
+    const anchorTop = languageHeading ? languageHeading.offsetTop : 0;
+    // Place slightly above the heading
+    messageElement.style.top = Math.max(0, anchorTop - 26) + 'px';
+    messageElement.style.left = '0';
+    messageElement.style.right = '0';
     messageElement.style.display = 'block';
     
     // Auto-hide after 3 seconds
@@ -181,7 +185,7 @@ function hideLanguageMessage() {
     const footerSection = languageSelect ? languageSelect.closest('.footer-section') : null;
     
     if (footerSection) {
-        const messageElement = footerSection.querySelector('.language-coming-soon-message');
+        const messageElement = footerSection.querySelector('.language-coming-soon-popup');
         if (messageElement) {
             messageElement.style.display = 'none';
         }

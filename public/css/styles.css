@@ -1300,16 +1300,20 @@ select:focus-visible {
     box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
 }
 
-/* Language Coming Soon Message */
-.language-coming-soon-message {
+/* Language Coming Soon popup - overlay (doesn't shift layout) */
+.language-coming-soon-popup {
+    position: absolute;
+    left: 0;
+    right: 0;
     display: none;
     color: #7C3AED;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     text-align: left;
-    margin-bottom: 8px;
-    padding: 6px 0;
-    animation: fadeIn 0.3s ease-in;
+    padding: 4px 0;
+    pointer-events: none; /* allow clicks to pass through */
+    animation: fadeIn 0.2s ease-in;
+    z-index: 2;
 }
 
 @keyframes fadeIn {
