@@ -134,9 +134,13 @@ const trackUsage = (req, res, next) => {
   next();
 };
 
-// HTTPS Enforcement (Production only)
+// HTTPS Enforcement (Production only, skip on localhost)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
+    // Skip HTTPS redirect for localhost (development)
+    if (req.header('host') && req.header('host').includes('localhost')) {
+      return next();
+    }
     // Check if request is HTTPS (behind proxy)
     const forwardedProto = req.header('x-forwarded-proto') || req.protocol;
     if (forwardedProto !== 'https') {
