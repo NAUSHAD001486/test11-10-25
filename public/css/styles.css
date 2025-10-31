@@ -83,12 +83,10 @@ body {
     left: 0;
     right: 0;
     z-index: 999;
-    background: var(--background);
-    padding: 16px 20px;
+    padding: 12px 20px; /* Padding around text */
     text-align: center;
-    border-bottom: 1px solid var(--border-color);
     animation: errorSlideDown 0.3s ease-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    /* No background, no border, no shadow - only text */
 }
 
 .error-message {
@@ -99,6 +97,7 @@ body {
     text-align: center;
     margin: 0 auto;
     max-width: 1200px;
+    padding: 0; /* No extra padding on text itself */
 }
 
 /* Adjust main content padding when error message is shown */

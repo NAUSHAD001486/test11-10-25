@@ -1105,7 +1105,6 @@ function showError(message) {
     errorMessage.textContent = message;
     errorMessageContainer.style.display = 'block';
     
-    // Don't auto-hide - message stays visible until manually hidden or new message
     // Scroll page to top to show message
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
@@ -1114,6 +1113,11 @@ function showError(message) {
     if (mainContent) {
         mainContent.style.paddingTop = '110px';
     }
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        hideError();
+    }, 5000);
 }
 
 function hideError() {
