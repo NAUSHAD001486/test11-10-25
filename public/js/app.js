@@ -38,6 +38,8 @@ const convertBtn = document.getElementById('convertBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
+const errorMessageContainer = document.getElementById('errorMessageContainer');
+const errorMessage = document.getElementById('errorMessage');
 // Removed progressCounter reference
 const fileInput = document.getElementById('fileInput');
 const urlModal = document.getElementById('urlModal');
@@ -260,7 +262,17 @@ function validateFile(file) {
     return true;
 }
 
-function processFiles(files) {
+async function processFiles(files) {
+    // Check daily limit before processing files
+    if (await isDailyLimitReached()) {
+        showError('Daily limit reached (2MB). Please try again tomorrow.');
+        // Mark all files as rejected
+        files.forEach(file => {
+            // Add visual rejection indicator (optional)
+        });
+        return;
+    }
+    
     const validFiles = [];
     const errors = [];
     
@@ -281,8 +293,8 @@ function processFiles(files) {
     
     // Show errors
     if (errors.length > 0) {
-        const errorMessage = errors.length === 1 ? errors[0] : `${errors.length} files have errors. First: ${errors[0]}`;
-        // Error: ${errorMessage}
+        const errorMsg = errors.length === 1 ? errors[0] : `${errors.length} files have errors. First: ${errors[0]}`;
+        showError(errorMsg);
     }
     
     if (validFiles.length === 0) return;
@@ -476,15 +488,15 @@ function handleModalBackdropClick(e) {
 function handleUrlSubmit() {
     const url = urlInput.value.trim();
     
-    if (!url) {
-        // Please enter a valid URL
-        return;
-    }
-    
-    if (!isValidImageUrl(url)) {
-        // Please enter a valid image URL
-        return;
-    }
+        if (!url) {
+            showError('Please enter a valid URL');
+            return;
+        }
+        
+        if (!isValidImageUrl(url)) {
+            showError('Please enter a valid image URL');
+            return;
+        }
     
     urlSubmit.disabled = true;
     urlSubmit.textContent = 'Uploading...';
@@ -496,9 +508,15 @@ function handleUrlSubmit() {
             updateUI();
             closeUrlModal();
             // File uploaded successfully
+            hideError(); // Hide error on success
         })
         .catch(error => {
-            // Error: ${error.message}
+            // Show error message
+            if (error.message && error.message.includes('limit')) {
+                showError(error.message);
+            } else {
+                showError(error.message || 'Upload failed. Please try again.');
+            }
         })
         .finally(() => {
             urlSubmit.disabled = false;
@@ -550,6 +568,9 @@ async function uploadFromUrl(url) {
             publicId: result.publicId
         };
     } catch (error) {
+        if (error.message && error.message.includes('limit')) {
+            showError(error.message);
+        }
         throw new Error(error.message || 'Failed to upload from URL');
     }
 }
@@ -557,9 +578,17 @@ async function uploadFromUrl(url) {
 // Convert files
 async function handleConvert() {
     if (isConverting || uploadedFiles.length === 0) return;
+    
+    // Hide any previous errors
+    hideError();
+    
     // Abort early if daily limit reached
     if (await isDailyLimitReached()) {
-        alert('Daily limit reached (2MB). Please try again tomorrow.');
+        showError('Daily limit reached (2MB). Please try again tomorrow.');
+        // Reset button state
+        convertBtn.disabled = false;
+        convertBtn.querySelector('.btn-text').style.display = 'block';
+        convertBtn.querySelector('.btn-loading').style.display = 'none';
         return;
     }
     
@@ -584,9 +613,16 @@ async function handleConvert() {
         const results = await convertFiles(startTime);
         convertedFiles = results; // Store converted files for clearing logic
         showResults(results);
+        // Hide any errors on success
+        hideError();
         // Conversion completed successfully!
     } catch (error) {
-        // Error: ${error.message}
+        // Show error message (red color)
+        if (error.message && error.message.includes('limit')) {
+            showError(error.message);
+        } else {
+            showError(error.message || 'Conversion failed. Please try again.');
+        }
     } finally {
         isConverting = false;
         convertBtn.disabled = false;
@@ -702,14 +738,18 @@ async function uploadFile(file) {
         body: formData
     });
     
-    if (!response.ok) {
-        if (response.status === 429) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || 'Daily limit reached (2MB). Please try again tomorrow.');
+        if (!response.ok) {
+            if (response.status === 429) {
+                const err = await response.json().catch(() => ({}));
+                const limitError = err.message || 'Daily limit reached (2MB). Please try again tomorrow.';
+                showError(limitError);
+                throw new Error(limitError);
+            }
+            const error = await response.json();
+            const errorMsg = error.error || 'Upload failed';
+            showError(errorMsg);
+            throw new Error(errorMsg);
         }
-        const error = await response.json();
-        throw new Error(error.error || 'Upload failed');
-    }
     
     const result = await response.json();
     
@@ -736,10 +776,14 @@ async function convertFile(publicId, format) {
     if (!response.ok) {
         if (response.status === 429) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || 'Daily limit reached (2MB). Please try again tomorrow.');
+            const limitError = err.message || 'Daily limit reached (2MB). Please try again tomorrow.';
+            showError(limitError);
+            throw new Error(limitError);
         }
         const error = await response.json();
-        throw new Error(error.error || 'Conversion failed');
+        const errorMsg = error.error || 'Conversion failed';
+        showError(errorMsg);
+        throw new Error(errorMsg);
     }
     
     const result = await response.json();
@@ -937,9 +981,15 @@ async function downloadFiles(results) {
 
 async function downloadAllFiles(results) {
     try {
+        // Hide any previous errors
+        hideError();
+        
         // Pre-check daily limit before starting ZIP job
         if (await isDailyLimitReached()) {
-            alert('Daily limit reached (2MB). Please try again tomorrow.');
+            showError('Daily limit reached (2MB). Please try again tomorrow.');
+            convertBtn.disabled = false;
+            convertBtn.querySelector('.btn-text').style.display = 'block';
+            convertBtn.querySelector('.btn-loading').style.display = 'none';
             return;
         }
         if (results.length === 1) {
@@ -974,7 +1024,7 @@ async function downloadAllFiles(results) {
                 convertBtn.querySelector('.btn-loading').style.display = 'none';
                 convertBtn.querySelector('.btn-text').style.display = 'block';
                 convertBtn.disabled = false;
-                alert(outJson.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                showError(outJson.message || 'Daily limit reached (2MB). Please try again tomorrow.');
                 return;
             }
             throw new Error(outJson.error || 'ZIP job create failed');
@@ -996,7 +1046,7 @@ async function downloadAllFiles(results) {
                     convertBtn.querySelector('.btn-loading').style.display = 'none';
                     convertBtn.querySelector('.btn-text').style.display = 'block';
                     convertBtn.disabled = false;
-                    alert(stat.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                    showError(stat.message || 'Daily limit reached (2MB). Please try again tomorrow.');
                     return;
                 }
                 throw new Error('Status poll failed');
@@ -1006,7 +1056,7 @@ async function downloadAllFiles(results) {
                     convertBtn.querySelector('.btn-loading').style.display = 'none';
                     convertBtn.querySelector('.btn-text').style.display = 'block';
                     convertBtn.disabled = false;
-                    alert(stat.message || 'Your daily conversion limit has been reached. Please try again tomorrow!');
+                    showError(stat.message || 'Daily limit reached (2MB). Please try again tomorrow.');
                     return;
                 }
                 throw new Error('ZIP error: ' + stat.error);
@@ -1036,10 +1086,10 @@ async function downloadAllFiles(results) {
         convertBtn.querySelector('.btn-text').style.display = 'block';
         convertBtn.disabled = false;
         if (error && error.message && error.message.toLowerCase().includes('limit')) {
-            alert('Your daily conversion limit has been reached. Please try again tomorrow!');
+            showError('Daily limit reached (2MB). Please try again tomorrow.');
             return;
         }
-        alert(error.message || 'ZIP download failed');
+        showError(error.message || 'ZIP download failed');
     }
 }
 
@@ -1055,7 +1105,27 @@ async function doMarketDownload(jobId, zipName) {
     }
 }
 
-// Toast notifications removed
+// Error message display function
+function showError(message) {
+    if (!errorMessageContainer || !errorMessage) return;
+    
+    errorMessage.textContent = message;
+    errorMessageContainer.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        hideError();
+    }, 5000);
+    
+    // Scroll to error message
+    errorMessageContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideError() {
+    if (errorMessageContainer) {
+        errorMessageContainer.style.display = 'none';
+    }
+}
 
 // Utility functions
 function formatFileSize(bytes) {
