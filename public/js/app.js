@@ -1100,7 +1100,8 @@ async function doMarketDownload(jobId, zipName) {
 
 // Error message display function
 let errorTimeout = null;
-let scrollHideTimeout = null;
+let messageStartTime = null;
+let messageVisible = false;
 let lastScrollY = 0;
 
 function showError(message) {
@@ -1108,14 +1109,17 @@ function showError(message) {
     
     // Clear any existing timeouts
     if (errorTimeout) clearTimeout(errorTimeout);
-    if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
     
     errorMessage.textContent = message;
     errorMessageContainer.style.display = 'block';
+    errorMessageContainer.style.position = 'fixed';
+    errorMessageContainer.style.top = '50px';
+    messageVisible = true;
+    messageStartTime = Date.now();
     
     // Scroll page to top to show message
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    lastScrollY = window.scrollY;
+    lastScrollY = 0;
     
     // Adjust main content padding
     const mainContent = document.querySelector('.main-content');
@@ -1132,6 +1136,8 @@ function showError(message) {
 function hideError() {
     if (errorMessageContainer) {
         errorMessageContainer.style.display = 'none';
+        messageVisible = false;
+        messageStartTime = null;
         
         // Reset main content padding
         const mainContent = document.querySelector('.main-content');
@@ -1145,50 +1151,43 @@ function hideError() {
         clearTimeout(errorTimeout);
         errorTimeout = null;
     }
-    if (scrollHideTimeout) {
-        clearTimeout(scrollHideTimeout);
-        scrollHideTimeout = null;
-    }
 }
 
-// Scroll detection for auto-hide
+// Scroll detection - message moves with page
 function handleScroll() {
-    if (!errorMessageContainer) return;
-    
-    // Check if error message is visible (handle both inline style and computed style)
-    const isVisible = errorMessageContainer.style.display !== 'none' && 
-                      getComputedStyle(errorMessageContainer).display !== 'none';
-    
-    if (!isVisible) {
+    if (!errorMessageContainer || !messageVisible) {
         lastScrollY = window.scrollY;
         return;
     }
     
     const currentScrollY = window.scrollY;
-    const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+    const elapsedTime = messageStartTime ? (Date.now() - messageStartTime) : 0;
     
-    // Only act if there's significant scroll movement (avoid tiny movements)
-    if (scrollDelta < 10) {
+    // Check if 5 seconds have passed
+    if (elapsedTime >= 5000) {
+        // 5 seconds passed - hide message completely
+        hideError();
         return;
     }
     
-    // If user scrolled away from top (down or up significantly)
-    if (currentScrollY > 100) {
-        // User scrolled down away from top - hide message after 2 seconds
-        if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
+    // If message is still within 5 seconds window
+    if (elapsedTime < 5000) {
+        // Message moves with page scroll (up)
+        if (currentScrollY > 0) {
+            // Change from fixed to absolute positioning so it moves with scroll
+            errorMessageContainer.style.position = 'absolute';
+            errorMessageContainer.style.top = (50 + currentScrollY) + 'px';
+        } else {
+            // At top - keep it fixed
+            errorMessageContainer.style.position = 'fixed';
+            errorMessageContainer.style.top = '50px';
+        }
         
-        scrollHideTimeout = setTimeout(() => {
-            if (errorMessageContainer && 
-                errorMessageContainer.style.display !== 'none' && 
-                getComputedStyle(errorMessageContainer).display !== 'none') {
-                hideError();
-            }
-        }, 2000);
-    } else if (currentScrollY <= 50) {
-        // User is at top - clear scroll hide timeout and cancel auto-hide
-        if (scrollHideTimeout) {
-            clearTimeout(scrollHideTimeout);
-            scrollHideTimeout = null;
+        // If user scrolls back up to top, ensure message is visible
+        if (currentScrollY <= 50 && errorMessageContainer.style.display === 'none') {
+            errorMessageContainer.style.display = 'block';
+            errorMessageContainer.style.position = 'fixed';
+            errorMessageContainer.style.top = '50px';
         }
     }
     

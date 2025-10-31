@@ -86,6 +86,7 @@ body {
     padding: 12px 20px; /* Padding around text */
     text-align: center;
     animation: errorSlideDown 0.3s ease-out;
+    transition: top 0.2s ease-out;
 }
 
 .error-message {
