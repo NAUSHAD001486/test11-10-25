@@ -84,7 +84,7 @@ body {
     right: 0;
     width: 100%; /* Full width from left to right */
     z-index: 999;
-    padding: 10px 20px; /* Reduced vertical padding for tighter spacing */
+    padding: 6px 20px; /* Minimal vertical padding for tight spacing */
     text-align: center;
     animation: errorSlideDown 0.3s ease-out;
     transition: top 0.2s ease-out;
