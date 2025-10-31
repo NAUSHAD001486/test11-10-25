@@ -1105,18 +1105,26 @@ function showError(message) {
     errorMessage.textContent = message;
     errorMessageContainer.style.display = 'block';
     
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-        hideError();
-    }, 5000);
+    // Don't auto-hide - message stays visible until manually hidden or new message
+    // Scroll page to top to show message
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Scroll to error message
-    errorMessageContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Adjust main content padding
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.style.paddingTop = '110px';
+    }
 }
 
 function hideError() {
     if (errorMessageContainer) {
         errorMessageContainer.style.display = 'none';
+        
+        // Reset main content padding
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.style.paddingTop = '';
+        }
     }
 }
 

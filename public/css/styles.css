@@ -76,6 +76,47 @@ body {
     text-decoration: none;
 }
 
+/* Error Message Container - Fixed below header */
+.error-message-container {
+    position: fixed;
+    top: 50px; /* Below header */
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: var(--background);
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    animation: errorSlideDown 0.3s ease-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.error-message {
+    color: #DC2626;
+    font-size: 18px; /* Larger text size */
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0 auto;
+    max-width: 1200px;
+}
+
+/* Adjust main content padding when error message is shown */
+.error-message-container:not([style*="display: none"]) ~ .main-content {
+    padding-top: 110px; /* 50px header + ~60px error message */
+}
+
+@keyframes errorSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Main Content */
 .main-content {
     padding-top: 50px;
@@ -84,6 +125,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 80px 20px 40px;
+    transition: padding-top 0.3s ease;
 }
 
 .container {
@@ -503,35 +545,6 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-/* Error Message Container */
-.error-message-container {
-    margin: 0 auto 20px auto;
-    max-width: 800px;
-    width: 100%;
-    padding: 0 20px;
-    animation: errorSlideDown 0.3s ease-out;
-    text-align: center;
-}
-
-.error-message {
-    color: #DC2626;
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
-    /* No background, only text styling */
-}
-
-@keyframes errorSlideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Progress Bar */
 .progress-container {
