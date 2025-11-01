@@ -140,12 +140,13 @@ body {
 
 /* Main Content */
 .main-content {
-    padding-top: 50px;
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 80px 20px 40px;
+    /* Content starts below header and stays in upper portion of viewport */
+    /* For desktop/desktop mode: padding ensures content stays above 60% viewport */
+    padding: max(80px, calc(50px + 5vh)) 20px 40px;
     transition: padding-top 0.3s ease;
 }
 
@@ -771,6 +772,21 @@ body {
 }
 
 /* Toast notifications removed */
+
+/* Desktop and Desktop Mode on Mobile - Ensure content stays in upper portion */
+@media (min-width: 769px) {
+    .main-content {
+        /* Content starts below header, stays in upper 60% of viewport */
+        /* Prevents content from going too far down when in desktop mode */
+        padding-top: max(80px, calc(50px + 8vh));
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-bottom: 40px;
+        align-items: flex-start;
+        /* Ensure content visibility in upper portion of screen */
+        justify-content: center;
+    }
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
