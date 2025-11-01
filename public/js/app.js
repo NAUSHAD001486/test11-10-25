@@ -163,6 +163,17 @@ function initializeAppFeatures() {
         var languageSelect = document.getElementById('languageSelect');
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
+            
+            // Mobile optimization: use listbox mode (size attribute) for compact scrollable view
+            function isMobileDevice() {
+                return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+            
+            if (isMobileDevice()) {
+                // Set size to 6 to show scrollable listbox with 6 visible options
+                // This prevents full-screen dropdown and shows compact scrollable list
+                languageSelect.setAttribute('size', '6');
+            }
         }
         
         // Mobile touch events support
