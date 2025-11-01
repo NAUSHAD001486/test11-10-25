@@ -989,15 +989,15 @@ function updateFileList() {
     fileListContainer.classList.add('show');
 }
 
-// Helper function to truncate filename intelligently (preserve start + extension)
-// Mobile: 10 chars + "..." + extension
-// Desktop: 25 chars + "..." + extension
+// Helper function to truncate filename intelligently (preserve start + last 4 chars + extension)
+// Mobile: 14 chars + "..." + last 4 chars of name + extension
+// Desktop: 25 chars + "..." + last 4 chars of name + extension
 function truncateFileName(filename) {
     // Detect mobile device
     var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Set max length based on device
-    var maxLength = isMobile ? 15 : 30; // Mobile: 10 chars + 3 for "..." + 2-4 for extension
+    // Set max length based on device (14 + 3 dots + 4 last chars + extension)
+    var maxLength = isMobile ? 25 : 35; // Mobile: 14 + 3 + 4 + 2-4 = ~23-25
     
     // If filename fits, return as is
     if (filename.length <= maxLength) {
@@ -1014,20 +1014,25 @@ function truncateFileName(filename) {
         nameWithoutExt = filename.substring(0, lastDotIndex);
     }
     
-    // Calculate available space for name part
-    // Mobile: 10 chars for name + 3 for "..." + extension length
-    // Desktop: 25 chars for name + 3 for "..." + extension length
-    var ellipsisLength = 3; // "..."
-    var nameCharLimit = isMobile ? 10 : 25;
-    var availableForName = nameCharLimit;
+    // Mobile: 14 chars for start + 3 for "..." + 4 for last chars + extension
+    // Desktop: 25 chars for start + 3 for "..." + 4 for last chars + extension
+    var startCharLimit = isMobile ? 14 : 25;
+    var lastCharsCount = 4; // Last 4 characters before extension
     
-    // Ensure we have at least 3 characters for the name start
-    if (availableForName < 3) {
-        availableForName = 3;
+    // Ensure name has enough characters to show start + last 4
+    if (nameWithoutExt.length <= (startCharLimit + lastCharsCount)) {
+        // If name is short enough, just show full name + extension
+        return filename;
     }
     
-    // Truncate: start + "..." + extension
-    var truncatedName = nameWithoutExt.substring(0, availableForName) + '...' + extension;
+    // Get first part (start chars)
+    var startPart = nameWithoutExt.substring(0, startCharLimit);
+    
+    // Get last part (last 4 chars before extension)
+    var lastPart = nameWithoutExt.substring(nameWithoutExt.length - lastCharsCount);
+    
+    // Truncate: start + "..." + last 4 chars + extension
+    var truncatedName = startPart + '...' + lastPart + extension;
     
     return truncatedName;
 }
