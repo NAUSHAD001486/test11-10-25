@@ -286,7 +286,7 @@ function initializeEventListeners() {
     
     // Format dropdown
     if (formatBtn && formatOptions) {
-        formatBtn.addEventListener('click', toggleFormatDropdown);
+    formatBtn.addEventListener('click', toggleFormatDropdown);
         // Get all format option elements
         var formatOptionElements = document.querySelectorAll('.format-option');
         for (var i = 0; i < formatOptionElements.length; i++) {
@@ -615,13 +615,13 @@ function toggleFormatDropdown(e) {
     if (!e || !formatOptions) return;
     
     if (e.stopPropagation) {
-        e.stopPropagation();
+    e.stopPropagation();
     } else if (e.cancelBubble !== undefined) {
         e.cancelBubble = true; // IE fallback
     }
     
     if (formatOptions.classList) {
-        formatOptions.classList.toggle('show');
+    formatOptions.classList.toggle('show');
     } else {
         // IE fallback
         var hasShow = formatOptions.className.indexOf('show') > -1;
@@ -672,7 +672,7 @@ function handleFormatSelection(e) {
     }
     
     if (e.currentTarget && e.currentTarget.classList) {
-        e.currentTarget.classList.add('selected');
+    e.currentTarget.classList.add('selected');
     } else if (e.currentTarget) {
         // IE fallback
         e.currentTarget.className += ' selected';
@@ -680,7 +680,7 @@ function handleFormatSelection(e) {
     
     // Close dropdown after selection
     if (formatOptions && formatOptions.classList) {
-        formatOptions.classList.remove('show');
+    formatOptions.classList.remove('show');
     } else if (formatOptions) {
         // IE fallback
         formatOptions.className = formatOptions.className.replace('show', '').trim();
@@ -705,7 +705,11 @@ function handleFileSelection(e) {
         }
         
         if (files.length > 0 && typeof processFiles === 'function') {
-    processFiles(files);
+            processFiles(files);
+            // Reset file input to allow re-selecting the same file
+            if (fileInput) {
+                fileInput.value = '';
+            }
         }
     } catch (err) {
         console.error('Error in handleFileSelection:', err);
@@ -1031,6 +1035,11 @@ function removeFile(fileId) {
         
         updateFileList();
         updateUI();
+        
+        // Reset file input to allow re-selecting the same file
+        if (fileInput) {
+            fileInput.value = '';
+        }
         
         if (uploadedFiles.length === 0) {
             fileListContainer.classList.remove('show');
