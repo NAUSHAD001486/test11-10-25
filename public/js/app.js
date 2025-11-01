@@ -286,10 +286,11 @@ function initializeEventListeners() {
     
     // Format dropdown
     if (formatBtn && formatOptions) {
-    formatBtn.addEventListener('click', toggleFormatDropdown);
-        var formatOptions = document.querySelectorAll('.format-option');
-        for (var i = 0; i < formatOptions.length; i++) {
-            formatOptions[i].addEventListener('click', handleFormatSelection);
+        formatBtn.addEventListener('click', toggleFormatDropdown);
+        // Get all format option elements
+        var formatOptionElements = document.querySelectorAll('.format-option');
+        for (var i = 0; i < formatOptionElements.length; i++) {
+            formatOptionElements[i].addEventListener('click', handleFormatSelection);
         }
     }
     
@@ -609,19 +610,50 @@ function handleFileSourceSelection(e) {
     }
 }
 
-// Format dropdown
+// Format dropdown - Safari compatible
 function toggleFormatDropdown(e) {
-    e.stopPropagation();
-    formatOptions.classList.toggle('show');
+    if (!e || !formatOptions) return;
+    
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    } else if (e.cancelBubble !== undefined) {
+        e.cancelBubble = true; // IE fallback
+    }
+    
+    if (formatOptions.classList) {
+        formatOptions.classList.toggle('show');
+    } else {
+        // IE fallback
+        var hasShow = formatOptions.className.indexOf('show') > -1;
+        if (hasShow) {
+            formatOptions.className = formatOptions.className.replace('show', '').trim();
+        } else {
+            formatOptions.className += ' show';
+        }
+    }
 }
 
 function handleFormatSelection(e) {
-    // Safari compatible dataset access
-    if (e.currentTarget && e.currentTarget.dataset) {
-    selectedFormat = e.currentTarget.dataset.format;
-    } else if (e.currentTarget && e.currentTarget.getAttribute) {
-        selectedFormat = e.currentTarget.getAttribute('data-format');
+    if (!e || !e.currentTarget) return;
+    
+    // Stop event propagation
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    } else if (e.cancelBubble !== undefined) {
+        e.cancelBubble = true; // IE fallback
     }
+    
+    // Safari compatible dataset access
+    var newFormat = null;
+    if (e.currentTarget && e.currentTarget.dataset) {
+        newFormat = e.currentTarget.dataset.format;
+    } else if (e.currentTarget && e.currentTarget.getAttribute) {
+        newFormat = e.currentTarget.getAttribute('data-format');
+    }
+    
+    if (!newFormat) return;
+    
+    selectedFormat = newFormat;
     
     var selectedFormatElement = document.getElementById('selectedFormat');
     if (selectedFormatElement) {
@@ -633,14 +665,25 @@ function handleFormatSelection(e) {
     for (var i = 0; i < formatOptionsList.length; i++) {
         if (formatOptionsList[i].classList) {
             formatOptionsList[i].classList.remove('selected');
+        } else {
+            // IE fallback
+            formatOptionsList[i].className = formatOptionsList[i].className.replace('selected', '').trim();
         }
     }
+    
     if (e.currentTarget && e.currentTarget.classList) {
-    e.currentTarget.classList.add('selected');
+        e.currentTarget.classList.add('selected');
+    } else if (e.currentTarget) {
+        // IE fallback
+        e.currentTarget.className += ' selected';
     }
     
+    // Close dropdown after selection
     if (formatOptions && formatOptions.classList) {
-    formatOptions.classList.remove('show');
+        formatOptions.classList.remove('show');
+    } else if (formatOptions) {
+        // IE fallback
+        formatOptions.className = formatOptions.className.replace('show', '').trim();
     }
 }
 
@@ -1448,15 +1491,15 @@ function showResults(results) {
     // Update convert button text based on number of files
     var btnText = convertBtn.querySelector('.btn-text');
     if (btnText) {
-        if (results.length === 1) {
+    if (results.length === 1) {
             btnText.textContent = 'Download';
-        } else {
+    } else {
             btnText.textContent = 'Download All';
         }
     }
     
     if (convertBtn && convertBtn.classList) {
-        convertBtn.classList.add('download');
+    convertBtn.classList.add('download');
     }
     // ES5 compatible onclick handler
     convertBtn.onclick = function() {
