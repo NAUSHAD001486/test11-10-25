@@ -1598,6 +1598,66 @@ async function downloadFiles(results) {
             });
         }
         
+        // Detect mobile browser
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // For mobile browsers, use form POST method (more reliable than blob URLs)
+        if (isMobile) {
+            console.log('Mobile browser detected - using form POST download method');
+            
+            // Stop spinner
+            convertBtn.querySelector('.btn-loading').style.display = 'none';
+            convertBtn.querySelector('.btn-text').style.display = 'block';
+            convertBtn.disabled = false;
+            
+            // Create hidden iframe for download (doesn't reload page)
+            var iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.name = 'downloadFrame';
+            document.body.appendChild(iframe);
+            
+            // Create form to POST to server
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/download';
+            form.target = 'downloadFrame'; // Download in iframe, not main window
+            form.style.display = 'none';
+            
+            // Add files data as JSON in hidden input
+            var filesInput = document.createElement('input');
+            filesInput.type = 'hidden';
+            filesInput.name = 'files';
+            filesInput.value = JSON.stringify(files);
+            form.appendChild(filesInput);
+            
+            // Append form to body and submit
+            document.body.appendChild(form);
+            form.submit();
+            
+            // Mark as downloaded
+            isDownloaded = true;
+            
+            // Clean up after delay (iframe stays for download to complete)
+            setTimeout(function() {
+                if (form.parentNode) {
+                    document.body.removeChild(form);
+                }
+                // Keep iframe for a bit longer to ensure download completes
+                setTimeout(function() {
+                    if (iframe.parentNode) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 2000);
+            }, 500);
+            
+            // Remove click animation class
+            convertBtn.classList.remove('clicked');
+            return; // Exit early - download handled by server via iframe
+        }
+        
+        // Desktop: Use blob URL method (original implementation)
         // Send download request to backend immediately
         const response = await fetch('/api/download', {
             method: 'POST',

@@ -586,7 +586,20 @@ app.post('/api/convert', trackUsage, async (req, res) => {
 // Download converted files (single file or ZIP bundle)
 app.post('/api/download', async (req, res) => {
   try {
-    const { files } = req.body;
+    // Support both JSON and form-urlencoded for mobile compatibility
+    let files;
+    if (req.body.files) {
+      // Form data: files is a JSON string
+      try {
+        files = typeof req.body.files === 'string' ? JSON.parse(req.body.files) : req.body.files;
+      } catch (e) {
+        // If parsing fails, try direct access
+        files = req.body.files;
+      }
+    } else {
+      // JSON body
+      files = req.body.files || req.body;
+    }
     
     if (!files || files.length === 0) {
       return res.status(400).json({ error: 'No files to download' });
