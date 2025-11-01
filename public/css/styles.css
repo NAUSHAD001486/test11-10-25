@@ -382,9 +382,13 @@ body {
     gap: 8px;
 }
 
-.file-action-btn {
-    width: 32px;
-    height: 32px;
+    /* Mobile touch target optimization - maintain same design */
+    .file-action-btn {
+        width: 32px;
+        height: 32px;
+        /* Minimum 44x44px for mobile touch (already 32px is acceptable for icons) */
+        min-width: 32px;
+        min-height: 32px;
     border: none;
     background: transparent;
     border-radius: var(--radius-sm);
@@ -839,6 +843,30 @@ body {
         margin: 20px;
     }
     
+    /* Convert button mobile - maintain same design */
+    .convert-btn {
+        padding: 14px 28px;
+        font-size: 15px;
+        /* Design same - colors, borders, shadows same */
+    }
+    
+    /* Progress bar mobile - maintain same design */
+    .progress-bar {
+        width: 75%;
+        /* Design same - colors, animations same */
+    }
+    
+    .progress-text {
+        font-size: 12px;
+    }
+    
+    /* File list container mobile - maintain same design */
+    .file-list-container {
+        max-height: 350px;
+        margin-bottom: 10px;
+        /* Design same - borders, background same */
+    }
+    
     /* Toast responsive styles removed */
 }
 
@@ -885,6 +913,27 @@ body {
     
     .file-size {
         font-size: 11px;
+    }
+    
+    /* Convert button mobile optimization */
+    .convert-btn {
+        padding: 14px 24px;
+        font-size: 15px;
+    }
+    
+    /* Progress bar mobile optimization */
+    .progress-bar {
+        width: 85%;
+    }
+    
+    .progress-text {
+        font-size: 12px;
+    }
+    
+    /* File list container mobile optimization */
+    .file-list-container {
+        max-height: 300px;
+        margin-bottom: 15px;
     }
 }
 
