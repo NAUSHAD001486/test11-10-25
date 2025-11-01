@@ -1862,10 +1862,38 @@ async function downloadAllFiles(results) {
 async function doMarketDownload(jobId, zipName) {
     // Trigger browser-native download -- ZIP progress bar!
     try {
-        let url = `/api/zip-file?jobId=${encodeURIComponent(jobId)}`;
-        // Use direct navigation for most reliable native progress UI
-        window.location.assign(url);
-        isDownloaded = true;
+        var url = '/api/zip-file?jobId=' + encodeURIComponent(jobId);
+        
+        // Detect mobile browser
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // For mobile browsers, use link click method to trigger download
+        if (isMobile) {
+            console.log('Mobile browser detected - using link download method for ZIP');
+            
+            // Create hidden link to trigger download
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = zipName || 'converted_files.zip';
+            link.style.display = 'none';
+            
+            // Add to DOM, click, and remove
+            document.body.appendChild(link);
+            link.click();
+            
+            // Clean up after delay
+            setTimeout(function() {
+                if (link.parentNode) {
+                    document.body.removeChild(link);
+                }
+            }, 100);
+            
+            isDownloaded = true;
+        } else {
+            // Desktop: Use direct navigation for most reliable native progress UI
+            window.location.assign(url);
+            isDownloaded = true;
+        }
     } catch(err) {
         alert('Native ZIP download failed: ' + (err.message||''));
     }
