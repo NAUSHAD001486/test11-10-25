@@ -1401,6 +1401,10 @@ select:focus-visible {
     max-width: 200px;
     cursor: pointer;
     transition: border-color 0.3s ease;
+    /* Prevent full-screen opening on mobile */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 .language-selector select:hover {
@@ -1501,6 +1505,19 @@ select:focus-visible {
     .footer-social {
         justify-content: center;
     }
+    
+    /* Language selector mobile optimization - smaller size, prevent full screen */
+    .language-selector {
+        width: 100%;
+        max-width: 160px;
+    }
+    
+    .language-selector select {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        max-width: 160px;
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1516,9 +1533,17 @@ select:focus-visible {
         font-size: 0.85rem;
     }
     
+    /* Language selector - extra small mobile - even smaller, prevent full screen */
+    .language-selector {
+        width: 100%;
+        max-width: 130px;
+    }
+    
     .language-selector select {
-        font-size: 0.85rem;
-        padding: 6px 10px;
+        font-size: 0.75rem;
+        padding: 5px 8px;
+        max-width: 130px;
+        width: 100%;
     }
     
     .footer-bottom p {
