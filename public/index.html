@@ -44,9 +44,10 @@
     
     <title>Love U Convert - WebP to PNG Converter | Free Online Image Converter</title>
     
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/css/styles.css" as="style">
-    <link rel="preload" href="/js/app.js" as="script">
+    <!-- Preload critical resources - Safari compatible -->
+    <link rel="preload" href="/css/styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/styles.css"></noscript>
+    <!-- Remove preload for JS to avoid Safari warnings -->
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -62,23 +62,25 @@ function isLikelyValidImage(buffer, expectedExt) {
   return buffer.length > 1024;
 }
 
-// Security middleware
+// Security middleware - Safari compatible
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", "https://api.cloudinary.com"]
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Safari compatibility - allow inline scripts
+      connectSrc: ["'self'", "https://api.cloudinary.com", "http://api.cloudinary.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null // Disable in development for localhost
     }
   },
-  hsts: {
+  hsts: process.env.NODE_ENV === 'production' ? {
     maxAge: parseInt(process.env.HSTS_MAX_AGE) || 31536000,
     includeSubDomains: true,
     preload: true
-  }
+  } : false // Disable HSTS in development for localhost (Safari fix)
 }));
 
 // Rate limiting - Apply ONLY to API routes; keep site always browsable
@@ -134,18 +136,24 @@ const trackUsage = (req, res, next) => {
   next();
 };
 
-// HTTPS Enforcement (Production only, skip on localhost)
+// HTTPS Enforcement (Production only, skip on localhost and local IPs)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    // Skip HTTPS redirect for localhost (development)
-    if (req.header('host') && req.header('host').includes('localhost')) {
+    const host = req.header('host') || '';
+    
+    // Skip HTTPS redirect for localhost and local IPs (development/testing)
+    if (host.includes('localhost') || 
+        host.match(/^10\.\d+\.\d+\.\d+/) || 
+        host.match(/^192\.168\.\d+\.\d+/) ||
+        host.match(/^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+/)) {
       return next();
     }
+    
     // Check if request is HTTPS (behind proxy)
     const forwardedProto = req.header('x-forwarded-proto') || req.protocol;
     if (forwardedProto !== 'https') {
       // Redirect HTTP to HTTPS
-      res.redirect(301, `https://${req.header('host')}${req.url}`);
+      res.redirect(301, `https://${host}${req.url}`);
     } else {
       next();
     }
