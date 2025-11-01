@@ -990,19 +990,11 @@ function updateFileList() {
 }
 
 // Helper function to truncate filename intelligently (preserve start + last 4 chars + extension)
-// Mobile: 14 chars + "..." + last 4 chars of name + extension
-// Desktop: 25 chars + "..." + last 4 chars of name + extension
+// Mobile: 15 chars + "..." + last 4 chars of name + extension
+// Desktop/Laptop/PC: 30 chars + "..." + last 4 chars of name + extension
 function truncateFileName(filename) {
     // Detect mobile device
     var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Set max length based on device (14 + 3 dots + 4 last chars + extension)
-    var maxLength = isMobile ? 25 : 35; // Mobile: 14 + 3 + 4 + 2-4 = ~23-25
-    
-    // If filename fits, return as is
-    if (filename.length <= maxLength) {
-        return filename;
-    }
     
     // Extract extension
     var lastDotIndex = filename.lastIndexOf('.');
@@ -1014,10 +1006,18 @@ function truncateFileName(filename) {
         nameWithoutExt = filename.substring(0, lastDotIndex);
     }
     
-    // Mobile: 14 chars for start + 3 for "..." + 4 for last chars + extension
-    // Desktop: 25 chars for start + 3 for "..." + 4 for last chars + extension
-    var startCharLimit = isMobile ? 14 : 25;
+    // Mobile: 15 chars for start + 3 for "..." + 4 for last chars + extension
+    // Desktop/Laptop/PC: 30 chars for start + 3 for "..." + 4 for last chars + extension
+    var startCharLimit = isMobile ? 15 : 30;
     var lastCharsCount = 4; // Last 4 characters before extension
+    
+    // Calculate total max length (start + dots + last chars + extension)
+    var maxLength = startCharLimit + 3 + lastCharsCount + extension.length;
+    
+    // If filename fits within max length, return as is
+    if (filename.length <= maxLength) {
+        return filename;
+    }
     
     // Ensure name has enough characters to show start + last 4
     if (nameWithoutExt.length <= (startCharLimit + lastCharsCount)) {
