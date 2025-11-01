@@ -989,15 +989,61 @@ function updateFileList() {
     fileListContainer.classList.add('show');
 }
 
+// Helper function to truncate filename intelligently (preserve start + extension)
+// Mobile: 10 chars + "..." + extension
+// Desktop: 25 chars + "..." + extension
+function truncateFileName(filename) {
+    // Detect mobile device
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Set max length based on device
+    var maxLength = isMobile ? 15 : 30; // Mobile: 10 chars + 3 for "..." + 2-4 for extension
+    
+    // If filename fits, return as is
+    if (filename.length <= maxLength) {
+        return filename;
+    }
+    
+    // Extract extension
+    var lastDotIndex = filename.lastIndexOf('.');
+    var extension = '';
+    var nameWithoutExt = filename;
+    
+    if (lastDotIndex > 0 && lastDotIndex < filename.length - 1) {
+        extension = filename.substring(lastDotIndex); // Include the dot
+        nameWithoutExt = filename.substring(0, lastDotIndex);
+    }
+    
+    // Calculate available space for name part
+    // Mobile: 10 chars for name + 3 for "..." + extension length
+    // Desktop: 25 chars for name + 3 for "..." + extension length
+    var ellipsisLength = 3; // "..."
+    var nameCharLimit = isMobile ? 10 : 25;
+    var availableForName = nameCharLimit;
+    
+    // Ensure we have at least 3 characters for the name start
+    if (availableForName < 3) {
+        availableForName = 3;
+    }
+    
+    // Truncate: start + "..." + extension
+    var truncatedName = nameWithoutExt.substring(0, availableForName) + '...' + extension;
+    
+    return truncatedName;
+}
+
 function createFileItem(fileObj) {
     var fileItem = document.createElement('div');
     fileItem.className = 'file-item';
     fileItem.dataset.fileId = fileObj.id;
     
+    // Truncate filename intelligently (preserve extension)
+    var displayName = truncateFileName(fileObj.name);
+    
     fileItem.innerHTML = `
         <img src="/icons/image-icon.svg" alt="${fileObj.name}" class="file-preview">
         <div class="file-info">
-            <div class="file-name">${fileObj.name}</div>
+            <div class="file-name" title="${fileObj.name}">${displayName}</div>
             <div class="file-size">${formatFileSize(fileObj.size)}</div>
         </div>
         <div class="file-actions">
