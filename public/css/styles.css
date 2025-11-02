@@ -1506,10 +1506,11 @@ select:focus-visible {
         justify-content: center;
     }
     
-    /* Language selector mobile optimization - smaller size, prevent full screen */
+    /* Language selector mobile optimization - compact size matching selection box, 5 languages visible */
     .language-selector {
         width: 100%;
         max-width: 160px;
+        display: inline-block;
     }
     
     .language-selector select {
@@ -1517,6 +1518,27 @@ select:focus-visible {
         padding: 6px 10px;
         max-width: 160px;
         width: 100%;
+    }
+    
+    /* When size attribute is set (mobile), show as compact scrollable listbox */
+    .language-selector select[size="5"] {
+        font-size: 0.8rem;
+        padding: 2px 10px;
+        max-width: 160px;
+        width: 160px;
+        height: auto;
+        max-height: calc(5 * 1.8em); /* Exactly 5 options visible */
+        min-height: calc(5 * 1.8em); /* Force height to show 5 options */
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        display: block;
+        /* Force listbox appearance (not native picker) */
+        appearance: listbox;
+        -webkit-appearance: listbox;
+        -moz-appearance: listbox;
+        border-radius: 6px;
+        cursor: default;
     }
 }
 
@@ -1533,10 +1555,11 @@ select:focus-visible {
         font-size: 0.85rem;
     }
     
-    /* Language selector - extra small mobile - even smaller, prevent full screen */
+    /* Language selector - extra small mobile - compact size matching selection box, 5 languages visible */
     .language-selector {
         width: 100%;
         max-width: 130px;
+        display: inline-block;
     }
     
     .language-selector select {
@@ -1544,6 +1567,27 @@ select:focus-visible {
         padding: 5px 8px;
         max-width: 130px;
         width: 100%;
+    }
+    
+    /* When size attribute is set (mobile), show as compact scrollable listbox */
+    .language-selector select[size="5"] {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        max-width: 130px;
+        width: 130px;
+        height: auto;
+        max-height: calc(5 * 1.6em); /* Exactly 5 options visible (smaller font) */
+        min-height: calc(5 * 1.6em); /* Force height to show 5 options */
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        display: block;
+        /* Force listbox appearance (not native picker) */
+        appearance: listbox;
+        -webkit-appearance: listbox;
+        -moz-appearance: listbox;
+        border-radius: 6px;
+        cursor: default;
     }
     
     .footer-bottom p {

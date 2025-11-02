@@ -163,6 +163,16 @@ function initializeAppFeatures() {
         var languageSelect = document.getElementById('languageSelect');
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
+            
+            // Mobile optimization: compact listbox with 5 visible languages
+            function isMobileDevice() {
+                return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+            
+            if (isMobileDevice()) {
+                // Set size=5 to show compact scrollable listbox (5 languages visible, rest scroll)
+                languageSelect.setAttribute('size', '5');
+            }
         }
         
         // Mobile touch events support
@@ -705,7 +715,7 @@ function handleFileSelection(e) {
         }
         
         if (files.length > 0 && typeof processFiles === 'function') {
-            processFiles(files);
+    processFiles(files);
             // Reset file input to allow re-selecting the same file
             if (fileInput) {
                 fileInput.value = '';
@@ -1891,8 +1901,8 @@ async function doMarketDownload(jobId, zipName) {
             isDownloaded = true;
         } else {
             // Desktop: Use direct navigation for most reliable native progress UI
-            window.location.assign(url);
-            isDownloaded = true;
+        window.location.assign(url);
+        isDownloaded = true;
         }
     } catch(err) {
         alert('Native ZIP download failed: ' + (err.message||''));
