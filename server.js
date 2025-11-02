@@ -774,6 +774,64 @@ app.post('/api/convert', trackUsage, async (req, res) => {
   }
 });
 
+// Contact form endpoint
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { email, message } = req.body;
+    
+    // Validate input
+    if (!email || !message) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Email and message are required' 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid email format' 
+      });
+    }
+    
+    // Prepare email content
+    const mailOptions = {
+      from: process.env.SMTP_USER || 'noreply@love-u-convert.com',
+      to: process.env.CONTACT_EMAIL || 'Contact@love-u-convert.com',
+      subject: `Contact Form - Love U Convert - ${email}`,
+      text: `New contact form submission from: ${email}\n\nMessage:\n${message}\n\n---\nSubmitted at: ${new Date().toISOString()}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #7C3AED;">New Contact Form Submission</h2>
+          <p><strong>From:</strong> ${email}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          <hr style="border: 1px solid #ddd; margin: 20px 0;">
+          <h3>Message:</h3>
+          <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        </div>
+      `
+    };
+    
+    // Send email
+    await emailTransporter.sendMail(mailOptions);
+    
+    console.log(`Contact form submission from: ${email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Message sent successfully' 
+    });
+  } catch (error) {
+    console.error('Contact form error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error sending message. Please try again later.' 
+    });
+  }
+});
+
 // Download converted files (single file or ZIP bundle)
 app.post('/api/download', async (req, res) => {
   try {
