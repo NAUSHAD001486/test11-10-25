@@ -161,21 +161,94 @@ function initializeAppFeatures() {
         
         // Language selector initialization
         var languageSelect = document.getElementById('languageSelect');
+        var languageSelectCustom = document.getElementById('languageSelectCustom');
+        var languageSelectButton = document.getElementById('languageSelectButton');
+        var languageSelectDropdown = document.getElementById('languageSelectDropdown');
+        var languageSelectButtonText = languageSelectButton ? languageSelectButton.querySelector('.language-select-button-text') : null;
+        
+        function isMobileDevice() {
+            return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // Desktop: use native select
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
-            
-            // Mobile optimization: make select compact so native picker appears smaller
-            function isMobileDevice() {
-                return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // Mobile: use custom dropdown
+        if (isMobileDevice() && languageSelectCustom && languageSelectButton && languageSelectDropdown && languageSelectButtonText) {
+            // Hide native select on mobile
+            if (languageSelect) {
+                languageSelect.style.display = 'none';
             }
             
-            if (isMobileDevice()) {
-                // Apply compact styling to make native picker appear smaller
-                // Don't use size attribute - let native picker work but make select compact
-                languageSelect.style.fontSize = window.innerWidth <= 480 ? '0.75rem' : '0.8rem';
-                languageSelect.style.padding = window.innerWidth <= 480 ? '5px 8px' : '6px 10px';
-                languageSelect.style.maxWidth = window.innerWidth <= 480 ? '130px' : '160px';
-                languageSelect.style.width = window.innerWidth <= 480 ? '130px' : '160px';
+            // Show custom dropdown
+            languageSelectCustom.style.display = 'block';
+            
+            // Update button text from native select value
+            function updateButtonText() {
+                if (languageSelect && languageSelectButtonText) {
+                    var selectedOption = languageSelect.options[languageSelect.selectedIndex];
+                    if (selectedOption) {
+                        languageSelectButtonText.textContent = selectedOption.textContent;
+                    }
+                }
+            }
+            updateButtonText();
+            
+            // Toggle dropdown on button click
+            function toggleDropdown() {
+                var isOpen = languageSelectDropdown.classList.contains('language-select-dropdown-open');
+                if (isOpen) {
+                    languageSelectDropdown.classList.remove('language-select-dropdown-open');
+                    languageSelectButton.classList.remove('language-select-button-active');
+                } else {
+                    languageSelectDropdown.classList.add('language-select-dropdown-open');
+                    languageSelectButton.classList.add('language-select-button-active');
+                }
+            }
+            
+            languageSelectButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleDropdown();
+            });
+            
+            // Handle option selection
+            var languageOptions = languageSelectDropdown.querySelectorAll('.language-option');
+            for (var i = 0; i < languageOptions.length; i++) {
+                (function(option) {
+                    option.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var value = option.getAttribute('data-value');
+                        if (value && languageSelect) {
+                            languageSelect.value = value;
+                            updateButtonText();
+                            toggleDropdown();
+                            // Trigger change event
+                            if (typeof handleLanguageChange === 'function') {
+                                handleLanguageChange({ target: languageSelect });
+                            }
+                        }
+                    });
+                })(languageOptions[i]);
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (languageSelectCustom && !languageSelectCustom.contains(e.target)) {
+                    languageSelectDropdown.classList.remove('language-select-dropdown-open');
+                    languageSelectButton.classList.remove('language-select-button-active');
+                }
+            });
+        } else {
+            // Desktop: hide custom dropdown, show native select
+            if (languageSelectCustom) {
+                languageSelectCustom.style.display = 'none';
+            }
+            if (languageSelect) {
+                languageSelect.style.display = 'block';
             }
         }
         

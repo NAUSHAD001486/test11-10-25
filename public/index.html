@@ -368,7 +368,8 @@
                 <div class="footer-section">
                     <h4>Language</h4>
                     <div class="language-selector">
-                        <select id="languageSelect">
+                        <!-- Native select - visible on desktop, hidden on mobile -->
+                        <select id="languageSelect" class="language-select-native">
                             <option value="en">English</option>
                             <option value="es">Español</option>
                             <option value="fr">Français</option>
@@ -382,6 +383,29 @@
                             <option value="hi">हिन्दी</option>
                             <option value="ar">العربية</option>
                         </select>
+                        <!-- Custom dropdown - visible on mobile, hidden on desktop -->
+                        <div class="language-select-custom" id="languageSelectCustom">
+                            <button class="language-select-button" id="languageSelectButton" type="button">
+                                <span class="language-select-button-text">English</span>
+                                <svg class="language-select-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="language-select-dropdown" id="languageSelectDropdown">
+                                <div class="language-option" data-value="en">English</div>
+                                <div class="language-option" data-value="es">Español</div>
+                                <div class="language-option" data-value="fr">Français</div>
+                                <div class="language-option" data-value="de">Deutsch</div>
+                                <div class="language-option" data-value="it">Italiano</div>
+                                <div class="language-option" data-value="pt">Português</div>
+                                <div class="language-option" data-value="ru">Русский</div>
+                                <div class="language-option" data-value="ja">日本語</div>
+                                <div class="language-option" data-value="ko">한국어</div>
+                                <div class="language-option" data-value="zh">中文</div>
+                                <div class="language-option" data-value="hi">हिन्दी</div>
+                                <div class="language-option" data-value="ar">العربية</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

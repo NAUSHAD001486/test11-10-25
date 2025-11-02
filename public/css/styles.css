@@ -1390,7 +1390,13 @@ select:focus-visible {
     color: #7C3AED;
 }
 
-.language-selector select {
+.language-selector {
+    position: relative;
+}
+
+/* Desktop: Show native select, hide custom dropdown */
+.language-select-native {
+    display: block;
     background-color: #3a3a42;
     color: #ffffff;
     border: 1px solid #4a4a52;
@@ -1401,17 +1407,20 @@ select:focus-visible {
     max-width: 200px;
     cursor: pointer;
     transition: border-color 0.3s ease;
-    /* Prevent full-screen opening on mobile */
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
 }
 
-.language-selector select:hover {
+.language-select-custom {
+    display: none;
+}
+
+.language-select-native:hover {
     border-color: #7C3AED;
 }
 
-.language-selector select:focus {
+.language-select-native:focus {
     outline: none;
     border-color: #7C3AED;
     box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
@@ -1506,29 +1515,106 @@ select:focus-visible {
         justify-content: center;
     }
     
-    /* Language selector mobile optimization - compact select to make native picker smaller */
+        /* Language selector mobile optimization - custom compact dropdown */
     .language-selector {
         width: 100%;
         max-width: 160px;
         display: inline-block;
+        position: relative;
     }
     
-    .language-selector select {
-        font-size: 0.8rem !important;
-        padding: 6px 10px !important;
-        max-width: 160px !important;
-        width: 160px !important;
-        height: auto !important;
-        line-height: 1.3 !important;
-        /* Compact styling to influence native picker size */
-        box-sizing: border-box;
+    /* Hide native select on mobile */
+    .language-select-native {
+        display: none !important;
+    }
+    
+    /* Custom dropdown container */
+    .language-select-custom {
+        display: none;
+        position: relative;
+        width: 100%;
+        max-width: 160px;
+    }
+    
+    /* Custom button */
+    .language-select-button {
+        background-color: #3a3a42;
+        color: #ffffff;
+        border: 1px solid #4a4a52;
         border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        width: 100%;
+        max-width: 160px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
     }
     
-    /* Make native picker options compact by reducing font size in select */
-    .language-selector select option {
-        font-size: 0.75rem;
+    .language-select-button:hover,
+    .language-select-button-active {
+        border-color: #7C3AED;
+    }
+    
+    .language-select-button-text {
+        flex: 1;
+        text-align: left;
+    }
+    
+    .language-select-arrow {
+        width: 12px;
+        height: 8px;
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+        margin-left: 8px;
+    }
+    
+    .language-select-button-active .language-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    /* Custom dropdown list - compact overlay */
+    .language-select-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background-color: #3a3a42;
+        border: 1px solid #4a4a52;
+        border-radius: 6px;
+        max-height: 200px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+    }
+    
+    .language-select-dropdown-open {
+        display: block;
+    }
+    
+    /* Language option */
+    .language-option {
         padding: 8px 10px;
+        font-size: 0.8rem;
+        color: #ffffff;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid #4a4a52;
+        box-sizing: border-box;
+    }
+    
+    .language-option:last-child {
+        border-bottom: none;
+    }
+    
+    .language-option:hover {
+        background-color: #4a4a52;
     }
 }
 
@@ -1545,28 +1631,44 @@ select:focus-visible {
         font-size: 0.85rem;
     }
     
-    /* Language selector - extra small mobile - very compact select to make native picker smaller */
+    /* Language selector - extra small mobile - very compact custom dropdown */
     .language-selector {
         width: 100%;
         max-width: 130px;
         display: inline-block;
+        position: relative;
     }
     
-    .language-selector select {
+    /* Hide native select on small mobile */
+    .language-select-native {
+        display: none !important;
+    }
+    
+    /* Custom dropdown container */
+    .language-select-custom {
+        display: none;
+        position: relative;
+        width: 100%;
+        max-width: 130px;
+    }
+    
+    /* Custom button - smaller */
+    .language-select-button {
         font-size: 0.75rem !important;
         padding: 5px 8px !important;
         max-width: 130px !important;
         width: 130px !important;
-        height: auto !important;
-        line-height: 1.2 !important;
-        /* Very compact styling to influence native picker size */
-        box-sizing: border-box;
-        border-radius: 6px;
     }
     
-    /* Make native picker options more compact */
-    .language-selector select option {
-        font-size: 0.7rem;
+    /* Custom dropdown list - compact overlay */
+    .language-select-dropdown {
+        max-width: 130px;
+        max-height: 180px;
+    }
+    
+    /* Language option - smaller */
+    .language-option {
+        font-size: 0.75rem;
         padding: 6px 8px;
     }
     
