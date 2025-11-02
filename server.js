@@ -318,6 +318,21 @@ app.get('/terms', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
 });
 
+// About Us routes
+app.get('/about-us.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
+});
+
+// Alternative route for /About-Us
+app.get('/About-Us', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
+});
+
+// Alternative route for /About
+app.get('/about', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
+});
+
 // Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
