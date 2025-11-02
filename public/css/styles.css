@@ -1576,12 +1576,6 @@ select:focus-visible {
         transform: rotate(180deg);
     }
     
-    /* When dropdown is above button, arrow should point down */
-    .language-select-dropdown-open ~ .language-select-button .language-select-arrow,
-    .language-select-button-active .language-select-arrow {
-        transform: rotate(180deg);
-    }
-    
     /* Custom dropdown list - compact overlay (shows above button) */
     .language-select-dropdown {
         display: none;
