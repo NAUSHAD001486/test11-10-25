@@ -1576,11 +1576,18 @@ select:focus-visible {
         transform: rotate(180deg);
     }
     
-    /* Custom dropdown list - compact overlay */
+    /* When dropdown is above button, arrow should point down */
+    .language-select-dropdown-open ~ .language-select-button .language-select-arrow,
+    .language-select-button-active .language-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    /* Custom dropdown list - compact overlay (shows above button) */
     .language-select-dropdown {
         display: none;
         position: absolute;
-        top: calc(100% + 4px);
+        bottom: calc(100% + 4px);
+        top: auto;
         left: 0;
         right: 0;
         background-color: #3a3a42;
@@ -1590,7 +1597,7 @@ select:focus-visible {
         overflow-y: auto;
         overflow-x: hidden;
         z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
         box-sizing: border-box;
     }
     
