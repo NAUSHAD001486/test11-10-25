@@ -67,25 +67,42 @@ function isLikelyValidImage(buffer, expectedExt) {
   return buffer.length > 1024;
 }
 
-// Security middleware - Safari compatible
+// Security middleware - Production-ready with all security headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com"], // Allow HTTP for Cloudinary in development
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Safari compatibility - allow inline scripts
-      connectSrc: ["'self'", "https://api.cloudinary.com", "http://api.cloudinary.com"],
+      connectSrc: ["'self'", "https://api.cloudinary.com", "http://api.cloudinary.com"], // Allow HTTP for Cloudinary in development
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null // Disable in development for localhost
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"], // Prevent clickjacking
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null // Force HTTPS in production
     }
   },
   hsts: process.env.NODE_ENV === 'production' ? {
-    maxAge: parseInt(process.env.HSTS_MAX_AGE) || 31536000,
+    maxAge: parseInt(process.env.HSTS_MAX_AGE) || 31536000, // 1 year
     includeSubDomains: true,
-    preload: true
-  } : false // Disable HSTS in development for localhost (Safari fix)
+    preload: true,
+    force: true
+  } : false, // Disable HSTS in development for localhost (Safari fix)
+  frameguard: { action: 'deny' }, // Prevent clickjacking
+  xssFilter: true, // Enable XSS protection
+  noSniff: true, // Prevent MIME type sniffing
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // SEO-friendly referrer policy
+  permissionsPolicy: {
+    features: {
+      geolocation: ["'none'"],
+      microphone: ["'none'"],
+      camera: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Disable for Cloudinary compatibility
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow Cloudinary images
 }));
 
 // Rate limiting - Apply ONLY to API routes; keep site always browsable

@@ -1,15 +1,34 @@
 User-agent: *
 Allow: /
 
-# Sitemap
+# Sitemap (Update with your actual domain)
 Sitemap: https://yourdomain.com/sitemap.xml
 
-# Disallow uploads directory
+# Disallow sensitive directories
 Disallow: /uploads/
 Disallow: /api/
+Disallow: /config.env
+Disallow: /*.env
+Disallow: /.git/
 
-# Allow all other content
+# Allow all public content
 Allow: /css/
 Allow: /js/
 Allow: /icons/
 Allow: /manifest.json
+Allow: /robots.txt
+Allow: /sitemap.xml
+Allow: /privacy-policy.html
+
+# Crawl-delay for bots
+Crawl-delay: 1
+
+# Specific bot rules
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
