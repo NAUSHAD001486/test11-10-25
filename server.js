@@ -170,15 +170,44 @@ app.use(cors({
   credentials: true
 }));
 
-// Compression
-app.use(compression());
+// Compression - Optimized for fast responses (balanced speed vs size)
+app.use(compression({
+    level: 6, // Balanced compression (1-9, 6 is optimal for speed)
+    threshold: 1024, // Only compress files larger than 1KB for faster small file handling
+    filter: function(req, res) {
+        // Compress HTML, CSS, JS, JSON, XML
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 
 // Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static files
-app.use(express.static('public'));
+// Static files - Optimized serving with no-cache headers for instant updates
+app.use(express.static('public', {
+    maxAge: 0, // No caching - user sees changes instantly (as per requirement)
+    etag: true, // Enable ETags for better validation
+    lastModified: true, // Enable Last-Modified headers
+    setHeaders: function(res, path) {
+        // Set no-cache headers for all files (user requirement - instant updates)
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        // Additional performance headers for faster parsing
+        if (path.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        } else if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        } else if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        }
+    }
+}));
 
 // Privacy Policy routes
 app.get('/privacy-policy.html', (req, res) => {
@@ -260,34 +289,39 @@ const validateFile = (file) => {
   return true;
 };
 
-// Upload file to Cloudinary with optimized settings
+// Upload file to Cloudinary with optimized settings for speed
 const uploadToCloudinary = async (filePath, publicId) => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       public_id: publicId,
       resource_type: 'auto',
       folder: 'love-u-convert',
-      timeout: 30000,
-      chunk_size: 6000000, // 6MB chunks for speed
-      tags: ['auto-delete-2h'] // Tag for auto-delete cleanup
+      timeout: 60000, // Increased timeout for large files (2GB limit support)
+      chunk_size: 10000000, // 10MB chunks for faster uploads (increased from 6MB)
+      tags: ['auto-delete-2h'], // Tag for auto-delete cleanup
+      use_filename: false, // Faster - skip filename processing
+      unique_filename: false // Faster - skip unique filename generation
     });
     return result;
   } catch (error) {
+    // Enhanced error handling with optimized retry logic
     if (error.http_code === 429) {
-      // Rate limit - wait 1s and retry once
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Rate limit - minimal wait for retry (optimized for speed)
+      await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 1s to 500ms
       try {
         return await cloudinary.uploader.upload(filePath, {
           public_id: publicId,
           resource_type: 'auto',
           folder: 'love-u-convert',
-          timeout: 30000
+          timeout: 60000,
+          chunk_size: 10000000 // 10MB chunks for retry too
         });
       } catch (retryError) {
-        throw new Error('Upload failed: Rate limit exceeded');
+        throw new Error('Upload failed: Rate limit exceeded. Please try again later.');
       }
     }
-    throw new Error(`Upload failed: ${error.message}`);
+    // Detailed error messages for better debugging and user experience
+    throw new Error(`Upload failed: ${error.message || 'Unknown error'}`);
   }
 };
 
@@ -328,14 +362,17 @@ const convertFile = async (publicId, originalFormat, targetFormat) => {
   }
 };
 
-// Download file from URL
+// Download file from URL - Optimized for speed with Keep-Alive agent
 const downloadFromUrl = async (url) => {
   try {
-    const response = await axios({
+    // Use Keep-Alive agent for faster subsequent requests
+    const response = await axiosKA({
       method: 'GET',
       url: url,
       responseType: 'stream',
-      timeout: 30000
+      timeout: 60000, // Increased timeout for large files (2GB limit)
+      maxContentLength: 2 * 1024 * 1024 * 1024, // 2GB max
+      maxBodyLength: 2 * 1024 * 1024 * 1024 // 2GB max
     });
     
     const filename = path.basename(url) || 'downloaded-file';
@@ -389,8 +426,8 @@ app.post('/api/upload/device', trackUsage, upload.array('files', 10), async (req
     const results = [];
     const errors = [];
     
-    // Process files in batches of 5 to avoid overload
-    const batchSize = 5;
+    // Process files in batches - optimized for speed (increased from 5 to 8)
+    const batchSize = 8; // Increased for faster uploads while maintaining stability
     for (let i = 0; i < req.files.length; i += batchSize) {
       const batch = req.files.slice(i, i + batchSize);
       
@@ -519,8 +556,8 @@ app.post('/api/convert', trackUsage, async (req, res) => {
     const convertedFiles = [];
     const errors = [];
     
-    // Process conversions in parallel (max 5 at a time)
-    const batchSize = 5;
+    // Process conversions in parallel - optimized for speed (increased from 5 to 8)
+    const batchSize = 8; // Increased for faster conversions while maintaining stability
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
       

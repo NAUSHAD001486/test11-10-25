@@ -44,17 +44,16 @@
     
     <title>Love U Convert - WebP to PNG Converter | Free Online Image Converter</title>
     
-    <!-- Preload critical resources - Safari compatible -->
-    <link rel="preload" href="/css/styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/styles.css"></noscript>
-    <!-- Remove preload for JS to avoid Safari warnings -->
+    <!-- Optimized resource loading - No preload for instant updates -->
+    <!-- CSS loaded directly for faster parsing -->
+    <link rel="stylesheet" href="/css/styles.css">
     
-    <!-- Fonts -->
+    <!-- Fonts - Optimized loading with preconnect and display=swap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="/css/styles.css">
+    <!-- Font loading with display=swap for faster rendering (no blocking) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
     <!-- Header -->

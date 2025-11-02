@@ -1,13 +1,12 @@
 const CACHE_NAME = 'love-u-convert-v1.0.0';
+// Exclude CSS/JS from caching - user needs instant updates (no cache as per requirement)
 const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
-  '/css/styles.css',
-  '/js/app.js',
   '/manifest.json',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+  '/icons/icon-512x512.png'
+  // CSS/JS excluded - always fetch fresh from network for instant updates
 ];
 
 // Install event - cache static resources
@@ -53,7 +52,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event - serve cached content when offline
+// Fetch event - optimized for instant updates (no CSS/JS caching)
 self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
@@ -67,70 +66,75 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // CSS/JS always fetch from network (no cache) - user requirement for instant updates
+  if (event.request.url.includes('/css/') || event.request.url.includes('/js/')) {
+    event.respondWith(
+      fetch(event.request).catch(function() {
+        // Only use cache as fallback if network fails completely
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+  
+  // Other resources: network first, cache fallback for offline
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version if available
-        if (response) {
-          return response;
+    fetch(event.request)
+      .then(function(fetchResponse) {
+        // Don't cache if not a valid response
+        if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+          return fetchResponse;
         }
         
-        // Otherwise, fetch from network
-        return fetch(event.request)
-          .then(fetchResponse => {
-            // Don't cache if not a valid response
-            if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
-              return fetchResponse;
-            }
-            
-            // Clone the response
-            const responseToCache = fetchResponse.clone();
-            
-            // Cache static resources
-            if (isStaticResource(event.request.url)) {
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                });
-            }
-            
-            return fetchResponse;
-          })
-          .catch(error => {
-            console.log('Fetch failed:', error);
-            
-            // Return offline page for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-            
-            // Return a generic offline response for other requests
-            return new Response('Offline', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
-            });
+        // Only cache non-CSS/JS resources (icons, manifest, etc.)
+        if (isCacheableResource(event.request.url)) {
+          var responseToCache = fetchResponse.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseToCache);
           });
+        }
+        
+        return fetchResponse;
+      })
+      .catch(function(error) {
+        // Fallback to cache only for offline support
+        return caches.match(event.request).then(function(response) {
+          if (response) {
+            return response;
+          }
+          
+          // Return offline page for navigation requests
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          
+          // Return a generic offline response
+          return new Response('Offline', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({
+              'Content-Type': 'text/plain'
+            })
+          });
+        });
       })
   );
 });
 
-// Helper function to determine if a resource should be cached
-function isStaticResource(url) {
-  return url.includes('.css') ||
-         url.includes('.js') ||
-         url.includes('.png') ||
+// Helper function to determine if a resource should be cached (CSS/JS excluded for instant updates)
+function isCacheableResource(url) {
+  // Only cache icons, manifest, and other non-CSS/JS static files
+  // CSS/JS excluded - always fetch fresh for instant updates
+  return (url.includes('.png') ||
          url.includes('.jpg') ||
          url.includes('.jpeg') ||
          url.includes('.gif') ||
          url.includes('.svg') ||
          url.includes('.ico') ||
-         url.includes('.woff') ||
-         url.includes('.woff2') ||
-         url.includes('fonts.googleapis.com') ||
-         url.includes('fonts.gstatic.com');
+         url.includes('manifest.json') ||
+         url.includes('/icons/')) &&
+         !url.includes('.css') &&
+         !url.includes('.js');
 }
 
 // Background sync for failed uploads (if supported)

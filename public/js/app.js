@@ -84,8 +84,8 @@ function domReady(fn) {
 // Initialize app - Cross-browser and mobile compatible with Safari fixes
 domReady(function() {
     try {
-        // Safari requires longer delay for DOM to be fully ready
-        var safariDelay = (navigator.userAgent.indexOf('Safari') > -1 && navigator.userAgent.indexOf('Chrome') === -1) ? 200 : 50;
+        // Safari requires delay for DOM to be fully ready (optimized for speed)
+        var safariDelay = (navigator.userAgent.indexOf('Safari') > -1 && navigator.userAgent.indexOf('Chrome') === -1) ? 150 : 30; // Optimized: 200ms->150ms, 50ms->30ms
         
         setTimeout(function() {
             // Initialize DOM elements first
@@ -99,7 +99,7 @@ domReady(function() {
                     retryCount++;
                     if (retryCount <= maxRetries) {
                         if (!initializeDOMElements()) {
-                            setTimeout(retryInit, 100);
+                            setTimeout(retryInit, 50); // Optimized: 100ms->50ms for faster retry
                             return;
                         }
                         initializeAppFeatures();
