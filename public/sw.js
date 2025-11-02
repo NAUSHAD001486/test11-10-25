@@ -1,12 +1,16 @@
-const CACHE_NAME = 'love-u-convert-v1.0.0';
-// Exclude CSS/JS from caching - user needs instant updates (no cache as per requirement)
+// Cache version - update this when assets change (matches CACHE_VERSION in config.env)
+const CACHE_VERSION = '1.0.0';
+const CACHE_NAME = 'love-u-convert-v' + CACHE_VERSION;
+
+// Static assets to cache - versioned URLs ensure fresh content on update
 const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
-  // CSS/JS excluded - always fetch fresh from network for instant updates
+  '/icons/icon-512x512.png',
+  '/css/styles.css?v=' + CACHE_VERSION,
+  '/js/app.js?v=' + CACHE_VERSION
 ];
 
 // Install event - cache static resources
@@ -66,12 +70,36 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // CSS/JS always fetch from network (no cache) - user requirement for instant updates
+  // CSS/JS: Cache first (versioned URLs), network fallback for updates
   if (event.request.url.includes('/css/') || event.request.url.includes('/js/')) {
     event.respondWith(
-      fetch(event.request).catch(function() {
-        // Only use cache as fallback if network fails completely
-        return caches.match(event.request);
+      caches.match(event.request).then(function(cachedResponse) {
+        // Return cached version if available (versioned URLs ensure freshness)
+        if (cachedResponse) {
+          // Also fetch from network in background to update cache
+          fetch(event.request).then(function(networkResponse) {
+            if (networkResponse && networkResponse.status === 200) {
+              var responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then(function(cache) {
+                cache.put(event.request, responseToCache);
+              });
+            }
+          }).catch(function() {
+            // Network fetch failed, ignore
+          });
+          return cachedResponse;
+        }
+        // Not in cache, fetch from network
+        return fetch(event.request).then(function(networkResponse) {
+          // Cache the response for future use
+          if (networkResponse && networkResponse.status === 200) {
+            var responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then(function(cache) {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        });
       })
     );
     return;

@@ -25,6 +25,11 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveM
 const axiosKA = axios.create({ httpAgent, httpsAgent });
 const PORT = process.env.PORT || 3000;
 
+// Cache configuration
+const ENABLE_CACHE = process.env.ENABLE_CACHE === 'true' || process.env.NODE_ENV === 'production';
+const CACHE_VERSION = process.env.CACHE_VERSION || '1.0.0';
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
+
 // Validate downloaded image buffer by simple magic-bytes + size checks
 function isLikelyValidImage(buffer, expectedExt) {
   if (!buffer || buffer.length < 32) return false; // too small to be valid
@@ -187,24 +192,69 @@ app.use(compression({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static files - Optimized serving with no-cache headers for instant updates
+// Middleware: Ensure API endpoints are NEVER cached (always fresh)
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
+
+// Static files - Smart caching based on environment
 app.use(express.static('public', {
-    maxAge: 0, // No caching - user sees changes instantly (as per requirement)
+    maxAge: ENABLE_CACHE ? (IS_DEVELOPMENT ? 0 : 31536000000) : 0, // 1 year cache in production, no cache in dev
     etag: true, // Enable ETags for better validation
     lastModified: true, // Enable Last-Modified headers
     setHeaders: function(res, path) {
-        // Set no-cache headers for all files (user requirement - instant updates)
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        
         // Additional performance headers for faster parsing
         if (path.endsWith('.html')) {
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            // HTML: Short cache or no-cache (depends on ENABLE_CACHE)
+            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
+                res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
+            } else {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
         } else if (path.endsWith('.css')) {
             res.setHeader('Content-Type', 'text/css; charset=utf-8');
+            // CSS: Long cache with version (production) or no-cache (development)
+            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+            } else {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
         } else if (path.endsWith('.js')) {
             res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+            // JS: Long cache with version (production) or no-cache (development)
+            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+            } else {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+        } else if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+            // Images, fonts, icons: Long cache (production) or no-cache (development)
+            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+            } else {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+        } else {
+            // Other files: No cache or short cache
+            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
+                res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
+            } else {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
         }
     }
 }));
