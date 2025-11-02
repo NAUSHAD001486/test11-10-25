@@ -164,14 +164,18 @@ function initializeAppFeatures() {
         if (languageSelect && typeof handleLanguageChange === 'function') {
             languageSelect.addEventListener('change', handleLanguageChange);
             
-            // Mobile optimization: compact listbox with 5 visible languages
+            // Mobile optimization: make select compact so native picker appears smaller
             function isMobileDevice() {
                 return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             }
             
             if (isMobileDevice()) {
-                // Set size=5 to show compact scrollable listbox (5 languages visible, rest scroll)
-                languageSelect.setAttribute('size', '5');
+                // Apply compact styling to make native picker appear smaller
+                // Don't use size attribute - let native picker work but make select compact
+                languageSelect.style.fontSize = window.innerWidth <= 480 ? '0.75rem' : '0.8rem';
+                languageSelect.style.padding = window.innerWidth <= 480 ? '5px 8px' : '6px 10px';
+                languageSelect.style.maxWidth = window.innerWidth <= 480 ? '130px' : '160px';
+                languageSelect.style.width = window.innerWidth <= 480 ? '130px' : '160px';
             }
         }
         
