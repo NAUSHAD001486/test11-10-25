@@ -12,6 +12,7 @@ const axios = require('axios');
 const http = require('http');
 const https = require('https');
 const archiver = require('archiver');
+const nodemailer = require('nodemailer');
 require('dotenv').config({ path: './config.env' });
 
 // Usage tracking for rate limiting
@@ -331,6 +332,21 @@ app.get('/About-Us', (req, res) => {
 // Alternative route for /About
 app.get('/about', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
+});
+
+// Contact Us routes
+app.get('/contact-us.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
+});
+
+// Alternative route for /Contact-Us
+app.get('/Contact-Us', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
+});
+
+// Alternative route for /Contact
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
 });
 
 // Cloudinary configuration
