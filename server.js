@@ -303,6 +303,21 @@ app.get('/Privacy-Policy', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
 });
 
+// Terms of Service routes
+app.get('/terms-of-service.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
+});
+
+// Alternative route for /Terms-of-Service
+app.get('/Terms-of-Service', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
+});
+
+// Alternative route for /Terms
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
+});
+
 // Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
