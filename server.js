@@ -356,6 +356,30 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Email transporter configuration
+// For production, configure SMTP in config.env
+const createTransporter = () => {
+  // If SMTP is configured, use it
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  }
+  // Otherwise, use a mock transporter (logs to console for development)
+  // In production, SMTP must be configured
+  return nodemailer.createTransport({
+    jsonTransport: true // Logs emails to console instead of sending
+  });
+};
+
+const emailTransporter = createTransporter();
+
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
