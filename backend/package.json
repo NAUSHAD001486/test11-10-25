@@ -1,20 +1,19 @@
 {
-  "name": "love-u-convert",
+  "name": "love-u-convert-backend",
   "version": "1.0.0",
-  "description": "WebP to PNG converter with PWA support",
+  "description": "Backend API for Love U Convert - WebP to PNG Converter",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "npm run build:frontend",
-    "build:frontend": "echo 'Frontend build complete'"
+    "dev": "nodemon server.js"
   },
   "keywords": [
     "webp",
     "png",
     "converter",
-    "pwa",
-    "cloudinary"
+    "api",
+    "backend",
+    "aws"
   ],
   "author": "Love U Convert",
   "license": "MIT",

@@ -15,6 +15,11 @@ function trackPageView(pageName) {
     }
 }
 
+// API Base URL - Get from window.API_BASE_URL (set in index.html)
+var getApiBaseUrl = function() {
+    return (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '';
+};
+
 // Global state - ES5 compatible for Safari
 var uploadedFiles = [];
 var convertedFiles = [];
@@ -315,7 +320,7 @@ function isDailyLimitReached() {
         // Use fetch with fallback for older browsers
         if (typeof fetch !== 'undefined') {
             // Use Promise chain instead of async/await for better compatibility
-            return fetch('/api/usage', { cache: 'no-store' })
+            return fetch(getApiBaseUrl() + '/api/usage', { cache: 'no-store' })
                 .then(function(res) {
                     if (!res || !res.ok) return false;
                     return res.json();
@@ -332,7 +337,7 @@ function isDailyLimitReached() {
             // Fallback using XMLHttpRequest for older browsers
             return new Promise(function(resolve) {
                 var xhr = new XMLHttpRequest();
-                xhr.open('GET', '/api/usage', true);
+                xhr.open('GET', getApiBaseUrl() + '/api/usage', true);
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState === 4) {
                         if (xhr.status === 200) {
@@ -1313,7 +1318,7 @@ async function uploadFromUrl(url) {
         if (await isDailyLimitReached()) {
             throw new Error('Daily limit reached (2GB). Please try again tomorrow.');
         }
-        const response = await fetch('/api/upload/url', {
+        const response = await fetch(getApiBaseUrl() + '/api/upload/url', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1505,7 +1510,7 @@ async function uploadFile(file) {
     const formData = new FormData();
     formData.append('files', file);
     
-    const response = await fetch('/api/upload/device', {
+    const response = await fetch(getApiBaseUrl() + '/api/upload/device', {
         method: 'POST',
         body: formData
     });
@@ -1534,7 +1539,7 @@ async function uploadFile(file) {
 }
 
 async function convertFile(publicId, format) {
-    const response = await fetch('/api/convert', {
+    const response = await fetch(getApiBaseUrl() + '/api/convert', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1708,7 +1713,7 @@ async function downloadFiles(results) {
             // Create form to POST to server
             var form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/api/download';
+            form.action = getApiBaseUrl() + '/api/download';
             form.target = 'downloadFrame'; // Download in iframe, not main window
             form.style.display = 'none';
             
@@ -1746,7 +1751,7 @@ async function downloadFiles(results) {
         
         // Desktop: Use blob URL method (original implementation)
         // Send download request to backend immediately
-        const response = await fetch('/api/download', {
+        const response = await fetch(getApiBaseUrl() + '/api/download', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1862,7 +1867,7 @@ async function downloadAllFiles(results) {
         convertBtn.querySelector('.btn-loading').style.display = 'flex';
         progressContainer.style.display = 'none';
 
-        const resp = await fetch('/api/zip-job', {
+        const resp = await fetch(getApiBaseUrl() + '/api/zip-job', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ files })
@@ -1890,7 +1895,7 @@ async function downloadAllFiles(results) {
         let pollCount = 0, maxPoll = 300, pollTimer;
         const pollZip = async () => {
             pollCount++;
-            const sres = await fetch(`/api/zip-status?jobId=${encodeURIComponent(jobId)}`);
+            const sres = await fetch(getApiBaseUrl() + `/api/zip-status?jobId=${encodeURIComponent(jobId)}`);
             let stat = { error: '', message: '' };
             try { stat = await sres.json(); } catch (e) {}
             if (!sres.ok) {
@@ -1949,7 +1954,7 @@ async function downloadAllFiles(results) {
 async function doMarketDownload(jobId, zipName) {
     // Trigger browser-native download -- ZIP progress bar!
     try {
-        var url = '/api/zip-file?jobId=' + encodeURIComponent(jobId);
+        var url = getApiBaseUrl() + '/api/zip-file?jobId=' + encodeURIComponent(jobId);
         
         // Detect mobile browser
         var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

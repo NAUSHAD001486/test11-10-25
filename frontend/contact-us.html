@@ -295,8 +295,16 @@
                         return;
                     }
                     
+                    // Get API Base URL (same logic as index.html)
+                    var apiBaseUrl = (function() {
+                        if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                            return window.API_BASE_URL || 'https://your-aws-backend.com';
+                        }
+                        return 'http://localhost:3000';
+                    })();
+                    
                     // Send to server
-                    fetch('/api/contact', {
+                    fetch(apiBaseUrl + '/api/contact', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

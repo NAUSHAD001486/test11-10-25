@@ -1,0 +1,20 @@
+{
+  "name": "love-u-convert-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Love U Convert - WebP to PNG Converter",
+  "scripts": {
+    "dev": "echo 'Frontend is static - use Vercel CLI or serve locally'",
+    "build": "echo 'Frontend is static - no build required'",
+    "start": "echo 'Frontend is static - use Vercel CLI or serve locally'"
+  },
+  "keywords": [
+    "webp",
+    "png",
+    "converter",
+    "frontend",
+    "vercel"
+  ],
+  "author": "Love U Convert",
+  "license": "MIT"
+}
+

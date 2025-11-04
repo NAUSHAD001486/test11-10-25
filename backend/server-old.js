@@ -183,10 +183,12 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// CORS configuration - Production-ready with domain whitelist
+// CORS configuration - Updated for frontend-backend separation
+// In development: Allow local frontend (port 3001) and local backend (port 3000)
+// In production: Allow Vercel frontend domains
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [process.env.PRODUCTION_DOMAIN || 'https://yourdomain.com'])
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [process.env.FRONTEND_URL || 'https://your-vercel-domain.vercel.app'])
+  : ['http://localhost:3001', 'http://localhost:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3000'];
 
 // Enhanced CORS with security
 app.use(cors({
@@ -235,119 +237,9 @@ app.use('/api', (req, res, next) => {
     next();
 });
 
-// Static files - Smart caching based on environment
-app.use(express.static('public', {
-    maxAge: ENABLE_CACHE ? (IS_DEVELOPMENT ? 0 : 31536000000) : 0, // 1 year cache in production, no cache in dev
-    etag: true, // Enable ETags for better validation
-    lastModified: true, // Enable Last-Modified headers
-    setHeaders: function(res, path) {
-        // Additional performance headers for faster parsing
-        if (path.endsWith('.html')) {
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            // HTML: Short cache or no-cache (depends on ENABLE_CACHE)
-            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
-                res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
-            } else {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        } else if (path.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css; charset=utf-8');
-            // CSS: Long cache with version (production) or no-cache (development)
-            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
-            } else {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        } else if (path.endsWith('.js')) {
-            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-            // JS: Long cache with version (production) or no-cache (development)
-            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
-            } else {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        } else if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
-            // Images, fonts, icons: Long cache (production) or no-cache (development)
-            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
-            } else {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        } else {
-            // Other files: No cache or short cache
-            if (ENABLE_CACHE && !IS_DEVELOPMENT) {
-                res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
-            } else {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        }
-    }
-}));
+// Static files removed - Frontend will be served by Vercel, not backend
 
-// Privacy Policy routes
-app.get('/privacy-policy.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
-});
-
-// Alternative route for /Privacy-Policy
-app.get('/Privacy-Policy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
-});
-
-// Terms of Service routes
-app.get('/terms-of-service.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
-});
-
-// Alternative route for /Terms-of-Service
-app.get('/Terms-of-Service', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
-});
-
-// Alternative route for /Terms
-app.get('/terms', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'terms-of-service.html'));
-});
-
-// About Us routes
-app.get('/about-us.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
-});
-
-// Alternative route for /About-Us
-app.get('/About-Us', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
-});
-
-// Alternative route for /About
-app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'about-us.html'));
-});
-
-// Contact Us routes
-app.get('/contact-us.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
-});
-
-// Alternative route for /Contact-Us
-app.get('/Contact-Us', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
-});
-
-// Alternative route for /Contact
-app.get('/contact', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'contact-us.html'));
-});
+// HTML page routes removed - Frontend will handle these routes on Vercel
 
 // Cloudinary configuration
 cloudinary.config({
@@ -1242,10 +1134,7 @@ function getMimeType(format) {
   return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 }
 
-// Serve main page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Main page route removed - Frontend will handle this on Vercel
 
 // Lightweight file cleanup with setTimeout
 const cleanupFiles = async () => {
