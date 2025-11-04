@@ -63,7 +63,8 @@ const sendContactEmail = async (req, res) => {
       message: 'Message sent successfully' 
     });
   } catch (error) {
-    console.error('Contact form error:', error);
+    const logger = require('../logger');
+    logger.error('Contact form error:', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       success: false, 
       error: 'Error sending message. Please try again later.' 

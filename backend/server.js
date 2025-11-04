@@ -259,8 +259,10 @@ cron.schedule('0 0 * * *', () => {
 });
 
 // Error handling middleware
+const logger = require('./logger');
+
 app.use((error, req, res, next) => {
-  console.error('Error:', error);
+  logger.error('Error:', { error: error.message, stack: error.stack, url: req.url, method: req.method });
   
   if (error.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'File too large' });
@@ -278,11 +280,15 @@ app.use((req, res) => {
 });
 
 // Start server
+const logger = require('./logger');
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 API available at: http://localhost:${PORT}/api`);
-  console.log(`❤️  Health check: http://localhost:${PORT}/health`);
+  logger.info(`✅ Server running on port ${PORT}`, {
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    apiUrl: `http://localhost:${PORT}/api`,
+    healthCheck: `http://localhost:${PORT}/health`
+  });
 });
 
 module.exports = app;

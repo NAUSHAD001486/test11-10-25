@@ -18,6 +18,7 @@
   "author": "Love U Convert",
   "license": "MIT",
   "dependencies": {
+    "winston": "^3.11.0",
     "archiver": "^6.0.1",
     "axios": "^1.6.2",
     "cloudinary": "^1.41.0",

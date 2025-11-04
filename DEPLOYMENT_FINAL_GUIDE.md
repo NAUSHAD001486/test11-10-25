@@ -67,9 +67,15 @@ nano .env
 # - CLOUDINARY_CLOUD_NAME
 # - CLOUDINARY_API_KEY
 # - CLOUDINARY_API_SECRET
-# - ALLOWED_ORIGINS (Vercel domain)
+# - ALLOWED_ORIGINS (Comma-separated: https://your-site.vercel.app,https://www.example.com)
 # - FRONTEND_URL
 # - SMTP settings (if using contact form)
+# - LOG_LEVEL (optional: info, warn, error - default: info)
+```
+
+**Important:** `ALLOWED_ORIGINS` should be comma-separated without spaces between domains:
+```env
+ALLOWED_ORIGINS=https://your-site.vercel.app,https://www.example.com
 ```
 
 #### 1.7 Install PM2
@@ -143,7 +149,51 @@ sudo ufw allow 443/tcp
 sudo ufw enable
 ```
 
-#### 1.11 Verify Backend
+#### 1.11 Setup PM2 Cronjob for Cleanup (Recommended)
+```bash
+# Create cleanup script
+nano /opt/your-repo/backend/scripts/cleanup.sh
+```
+
+**cleanup.sh:**
+```bash
+#!/bin/bash
+# Daily cleanup script - Runs independently of Node.js process
+
+# Reset daily usage (via API endpoint)
+curl -X POST http://localhost:3000/api/admin/reset-usage 2>/dev/null
+
+# Cleanup old files in uploads directory
+find /opt/your-repo/backend/uploads -type f -mtime +1 -delete 2>/dev/null
+
+# Log cleanup
+echo "$(date): Cleanup completed" >> /opt/your-repo/backend/logs/cleanup.log
+```
+
+```bash
+# Make executable
+chmod +x /opt/your-repo/backend/scripts/cleanup.sh
+
+# Edit crontab
+crontab -e
+
+# Add these lines:
+# Daily usage reset at midnight
+0 0 * * * curl -X POST http://localhost:3000/api/admin/reset-usage
+
+# File cleanup every 2 hours
+0 */2 * * * /opt/your-repo/backend/scripts/cleanup.sh
+
+# Verify cronjob
+crontab -l
+```
+
+**Benefits:**
+- ✅ Runs even if server crashes
+- ✅ Independent of Node.js process
+- ✅ More reliable for critical tasks
+
+#### 1.12 Verify Backend
 ```bash
 # Test health endpoint
 curl http://localhost:3000/health
@@ -155,6 +205,13 @@ curl https://api.yourdomain.com/health
 # Check PM2
 pm2 status
 pm2 logs love-u-convert-api
+
+# Check cronjobs
+crontab -l
+
+# Check logs
+tail -f /opt/your-repo/backend/logs/combined.log
+tail -f /opt/your-repo/backend/logs/error.log
 ```
 
 ### Step 2: Frontend Deployment (Vercel)

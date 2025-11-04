@@ -85,7 +85,8 @@ const convertFiles = async (req, res) => {
     
     res.json(response);
   } catch (error) {
-    console.error('Convert endpoint error:', error);
+    const logger = require('../logger');
+    logger.error('Convert endpoint error:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 };

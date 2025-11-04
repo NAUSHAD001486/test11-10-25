@@ -82,7 +82,8 @@ const uploadFromDevice = async (req, res) => {
     
     res.json(response);
   } catch (error) {
-    console.error('Upload endpoint error:', error);
+    const logger = require('../logger');
+    logger.error('Upload endpoint error:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 };

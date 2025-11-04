@@ -1,0 +1,60 @@
+// Winston Logger for Production - Better Error Tracking
+const winston = require('winston');
+const path = require('path');
+const fs = require('fs-extra');
+
+// Ensure logs directory exists
+const logsDir = path.join(__dirname, 'logs');
+fs.ensureDirSync(logsDir);
+
+// Create logger instance
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.errors({ stack: true }),
+    winston.format.splat(),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'love-u-convert-api' },
+  transports: [
+    // Write all logs to combined.log
+    new winston.transports.File({ 
+      filename: path.join(logsDir, 'error.log'), 
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+      tailable: true
+    }),
+    new winston.transports.File({ 
+      filename: path.join(logsDir, 'combined.log'),
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+      tailable: true
+    })
+  ]
+});
+
+// If not in production, also log to console
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  }));
+}
+
+// If in production, only log errors to console
+if (process.env.NODE_ENV === 'production') {
+  logger.add(new winston.transports.Console({
+    level: 'error',
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  }));
+}
+
+module.exports = logger;
+
