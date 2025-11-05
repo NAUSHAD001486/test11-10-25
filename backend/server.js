@@ -107,22 +107,79 @@ if (process.env.NODE_ENV === 'production') {
 
 // CORS configuration - Updated for frontend-backend separation
 // Production: Only allow Vercel domain(s) from ALLOWED_ORIGINS
-// Development: Allow localhost for local testing
+// Development: Allow localhost and local network IPs for mobile testing
 const allowedOrigins = process.env.NODE_ENV === 'production' 
   ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(o => o) : [process.env.FRONTEND_URL || 'https://your-vercel-domain.vercel.app'].filter(o => o))
   : ['http://localhost:3001', 'http://localhost:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3000'];
 
+// Helper function to check if origin is from local network
+function isLocalNetworkOrigin(origin) {
+  if (!origin) return false;
+  
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    
+    // Check for localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return true;
+    }
+    
+    // Check for local network IPs (10.x.x.x, 192.168.x.x, 172.x.x.x)
+    if (hostname.match(/^10\.\d+\.\d+\.\d+$/)) {
+      return true;
+    }
+    if (hostname.match(/^192\.168\.\d+\.\d+$/)) {
+      return true;
+    }
+    if (hostname.match(/^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/)) {
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin && process.env.NODE_ENV === 'development') {
+    // In development mode: Allow all local network origins
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.NODE_ENV !== 'production';
+    
+    // Allow requests with no origin in development (mobile apps, curl, etc.)
+    if (!origin && isDev) {
       return callback(null, true);
     }
     
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (isDev) {
+      // Check exact match in allowedOrigins
+      if (origin && allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+      
+      // Check if origin is from local network (dynamic IP detection)
+      if (origin && isLocalNetworkOrigin(origin)) {
+        // Allow all local network IPs on any port for development
+        return callback(null, true);
+      }
+      
+      // In development, be permissive - allow all local origins
+      if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || isLocalNetworkOrigin(origin))) {
+        return callback(null, true);
+      }
     }
+    
+    // In production: Only allow exact matches from ALLOWED_ORIGINS
+    if (process.env.NODE_ENV === 'production') {
+      if (origin && allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+    }
+    
+    // Default: Deny
+    console.log('CORS blocked origin:', origin, 'NODE_ENV:', process.env.NODE_ENV);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
