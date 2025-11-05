@@ -2046,7 +2046,15 @@ async function downloadAllFiles(results) {
             if (stat.status === 'ready' && stat.ready) {
                jobReady = true; zipName = stat.zipName || zipName;
                // Stop spinner immediately, re-enable button
-               convertBtn.querySelector('.btn-loading').style.display = 'none';
+               const btnLoading = convertBtn.querySelector('.btn-loading');
+               if (btnLoading) {
+                   btnLoading.style.display = 'none';
+                   // Restore "Converting..." text for future use
+                   const loadingText = btnLoading.querySelector('span');
+                   if (loadingText) {
+                       loadingText.textContent = 'Converting...';
+                   }
+               }
                convertBtn.querySelector('.btn-text').style.display = 'block';
                convertBtn.disabled = false;
                // Native browser download (progress shown by browser)
