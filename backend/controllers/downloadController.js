@@ -10,14 +10,41 @@ const axiosKA = require('../utils/axiosKA');
 const downloadSingleFile = async (req, res, file) => {
   const { publicId, format, originalName } = file;
   
-  // Optimized: Generate converted URL immediately (no async conversion needed)
+  // Optimized: Generate converted URL with attachment flag for download
+  // This ensures Cloudinary serves file as download, not inline display
   let convertedUrl;
   try {
-    convertedUrl = await convertFile(publicId, 'webp', format);
-  } catch (conversionError) {
-    // Fallback: Use original Cloudinary URL
+    // Get base conversion URL
+    const baseUrl = await convertFile(publicId, 'webp', format);
+    
+    // Add attachment parameter to force download (Cloudinary-specific)
+    // Format: Add ?attachment=filename or use Cloudinary transformation flags
     const cloudinary = require('cloudinary').v2;
-    convertedUrl = cloudinary.url(publicId, { quality: 'auto' });
+    const cloudinaryFormat = require('../utils/cloudinary').CLOUDINARY_FORMATS[format] || 'png';
+    const { SPECIAL_FORMATS } = require('../utils/cloudinary');
+    
+    let transformation = {
+      quality: 'auto',
+      flags: 'attachment' // Force download instead of inline display
+    };
+    
+    if (SPECIAL_FORMATS.includes(format)) {
+      transformation.format = 'png';
+      transformation.fetch_format = 'png';
+    } else {
+      transformation.format = cloudinaryFormat;
+      transformation.fetch_format = cloudinaryFormat;
+    }
+    
+    // Generate URL with attachment flag
+    convertedUrl = cloudinary.url(publicId, transformation);
+  } catch (conversionError) {
+    // Fallback: Use original Cloudinary URL with attachment flag
+    const cloudinary = require('cloudinary').v2;
+    convertedUrl = cloudinary.url(publicId, { 
+      quality: 'auto',
+      flags: 'attachment' // Force download
+    });
   }
   
   // Generate proper filename
@@ -35,8 +62,9 @@ const downloadSingleFile = async (req, res, file) => {
   const filename = `${baseName}.${format.toLowerCase()}`;
   const mimeType = SPECIAL_FORMATS.includes(format) ? 'image/png' : getMimeType(format);
   
-  // Optimized: Direct redirect to Cloudinary URL instead of streaming
-  // This is much faster - Cloudinary serves file directly to user
+  // Optimized: Direct redirect to Cloudinary URL with attachment flag
+  // This ensures file downloads instead of displaying inline
+  // Cloudinary CDN handles delivery directly to user (fastest method)
   res.setHeader('Content-Type', mimeType);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('X-File-Count', '1');
@@ -44,7 +72,7 @@ const downloadSingleFile = async (req, res, file) => {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   
-  // Direct redirect - fastest method (Cloudinary CDN handles delivery)
+  // Direct redirect - fastest method (Cloudinary CDN handles delivery with attachment flag)
   res.redirect(302, convertedUrl);
 };
 
