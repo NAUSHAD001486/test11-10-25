@@ -1703,11 +1703,6 @@ async function downloadFiles(results) {
         if (isMobile) {
             console.log('Mobile browser detected - using form POST download method');
             
-            // Stop spinner
-            convertBtn.querySelector('.btn-loading').style.display = 'none';
-            convertBtn.querySelector('.btn-text').style.display = 'block';
-            convertBtn.disabled = false;
-            
             // Create hidden iframe for download (doesn't reload page)
             var iframe = document.createElement('iframe');
             iframe.style.display = 'none';
@@ -1733,6 +1728,21 @@ async function downloadFiles(results) {
             // Append form to body and submit
             document.body.appendChild(form);
             form.submit();
+            
+            // Stop spinner immediately after form submit (download starts)
+            setTimeout(function() {
+                const btnLoading = convertBtn.querySelector('.btn-loading');
+                if (btnLoading) {
+                    btnLoading.style.display = 'none';
+                    // Restore "Converting..." text for future use
+                    const loadingText = btnLoading.querySelector('span');
+                    if (loadingText) {
+                        loadingText.textContent = 'Converting...';
+                    }
+                }
+                convertBtn.querySelector('.btn-text').style.display = 'block';
+                convertBtn.disabled = false;
+            }, 100); // Small delay to ensure download starts
             
             // Mark as downloaded
             isDownloaded = true;
@@ -1773,21 +1783,23 @@ async function downloadFiles(results) {
             
             document.body.appendChild(form);
             
-            // Stop spinner and restore button text after download starts
-            const btnLoading = convertBtn.querySelector('.btn-loading');
-            if (btnLoading) {
-                btnLoading.style.display = 'none';
-                // Restore "Converting..." text for future use
-                const loadingText = btnLoading.querySelector('span');
-                if (loadingText) {
-                    loadingText.textContent = 'Converting...';
-                }
-            }
-            convertBtn.querySelector('.btn-text').style.display = 'block';
-            convertBtn.disabled = false;
-            
             // Submit form - browser handles download directly (faster than blob)
             form.submit();
+            
+            // Stop spinner immediately after form submit (download starts)
+            setTimeout(function() {
+                const btnLoading = convertBtn.querySelector('.btn-loading');
+                if (btnLoading) {
+                    btnLoading.style.display = 'none';
+                    // Restore "Converting..." text for future use
+                    const loadingText = btnLoading.querySelector('span');
+                    if (loadingText) {
+                        loadingText.textContent = 'Converting...';
+                    }
+                }
+                convertBtn.querySelector('.btn-text').style.display = 'block';
+                convertBtn.disabled = false;
+            }, 100); // Small delay to ensure download starts
             
             // Clean up after delay
             setTimeout(function() {
@@ -1872,7 +1884,17 @@ async function downloadFiles(results) {
         console.error('Download error:', error);
         // Download failed: ${error.message}
         
-        // Reset button state on error (spinner will be hidden by 2-second timeout)
+        // Reset button state on error - stop spinner immediately
+        const btnLoading = convertBtn.querySelector('.btn-loading');
+        if (btnLoading) {
+            btnLoading.style.display = 'none';
+            // Restore "Converting..." text for future use
+            const loadingText = btnLoading.querySelector('span');
+            if (loadingText) {
+                loadingText.textContent = 'Converting...';
+            }
+        }
+        convertBtn.querySelector('.btn-text').style.display = 'block';
         convertBtn.disabled = false;
     } finally {
         // Remove click animation class
