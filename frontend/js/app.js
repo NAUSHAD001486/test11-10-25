@@ -1729,10 +1729,29 @@ async function downloadFiles(results) {
             document.body.appendChild(form);
             form.submit();
             
-            // Stop spinner immediately after form submit (download starts)
+            // Track download completion - hide spinner after download completes
+            // Use iframe load event to detect when download starts
+            iframe.onload = function() {
+                // Download started - wait a bit more for completion
+                setTimeout(function() {
+                    const btnLoading = convertBtn.querySelector('.btn-loading');
+                    if (btnLoading) {
+                        btnLoading.style.display = 'none';
+                        // Restore "Converting..." text for future use
+                        const loadingText = btnLoading.querySelector('span');
+                        if (loadingText) {
+                            loadingText.textContent = 'Converting...';
+                        }
+                    }
+                    convertBtn.querySelector('.btn-text').style.display = 'block';
+                    convertBtn.disabled = false;
+                }, 2000); // Wait for download to complete
+            };
+            
+            // Fallback: Hide spinner after reasonable delay if iframe doesn't fire
             setTimeout(function() {
                 const btnLoading = convertBtn.querySelector('.btn-loading');
-                if (btnLoading) {
+                if (btnLoading && btnLoading.style.display !== 'none') {
                     btnLoading.style.display = 'none';
                     // Restore "Converting..." text for future use
                     const loadingText = btnLoading.querySelector('span');
@@ -1740,9 +1759,11 @@ async function downloadFiles(results) {
                         loadingText.textContent = 'Converting...';
                     }
                 }
-                convertBtn.querySelector('.btn-text').style.display = 'block';
-                convertBtn.disabled = false;
-            }, 100); // Small delay to ensure download starts
+                if (convertBtn.disabled) {
+                    convertBtn.querySelector('.btn-text').style.display = 'block';
+                    convertBtn.disabled = false;
+                }
+            }, 3000); // Fallback timeout
             
             // Mark as downloaded
             isDownloaded = true;
@@ -1786,7 +1807,9 @@ async function downloadFiles(results) {
             // Submit form - browser handles download directly (faster than blob)
             form.submit();
             
-            // Stop spinner immediately after form submit (download starts)
+            // Track download completion - hide spinner after download completes
+            // For single file downloads, estimate completion time based on file size
+            // Most downloads complete within 2-3 seconds
             setTimeout(function() {
                 const btnLoading = convertBtn.querySelector('.btn-loading');
                 if (btnLoading) {
@@ -1799,7 +1822,7 @@ async function downloadFiles(results) {
                 }
                 convertBtn.querySelector('.btn-text').style.display = 'block';
                 convertBtn.disabled = false;
-            }, 100); // Small delay to ensure download starts
+            }, 2500); // Wait for download to complete (2.5 seconds)
             
             // Clean up after delay
             setTimeout(function() {
