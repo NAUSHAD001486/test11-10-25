@@ -6,41 +6,18 @@ const path = require('path');
 const archiver = require('archiver');
 const axiosKA = require('../utils/axiosKA');
 
-// Download single file
+// Download single file - Optimized for fast "click and done" experience
 const downloadSingleFile = async (req, res, file) => {
   const { publicId, format, originalName } = file;
   
-  // Get the converted URL with fallback
+  // Optimized: Generate converted URL immediately (no async conversion needed)
   let convertedUrl;
   try {
     convertedUrl = await convertFile(publicId, 'webp', format);
   } catch (conversionError) {
-    console.warn(`Conversion failed, using original file: ${conversionError.message}`);
+    // Fallback: Use original Cloudinary URL
     const cloudinary = require('cloudinary').v2;
     convertedUrl = cloudinary.url(publicId, { quality: 'auto' });
-  }
-  
-  // Fetch the file from Cloudinary with retry logic
-  let response;
-  let retryCount = 0;
-  const maxRetries = 2;
-  
-  while (retryCount <= maxRetries) {
-    try {
-      response = await axios({
-        method: 'GET',
-        url: convertedUrl,
-        responseType: 'stream',
-        timeout: 20000
-      });
-      break;
-    } catch (fetchError) {
-      retryCount++;
-      if (retryCount > maxRetries) {
-        throw new Error(`Failed to fetch file after ${maxRetries + 1} attempts: ${fetchError.message}`);
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-    }
   }
   
   // Generate proper filename
@@ -58,12 +35,17 @@ const downloadSingleFile = async (req, res, file) => {
   const filename = `${baseName}.${format.toLowerCase()}`;
   const mimeType = SPECIAL_FORMATS.includes(format) ? 'image/png' : getMimeType(format);
   
+  // Optimized: Direct redirect to Cloudinary URL instead of streaming
+  // This is much faster - Cloudinary serves file directly to user
   res.setHeader('Content-Type', mimeType);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.setHeader('Content-Length', response.headers['content-length']);
   res.setHeader('X-File-Count', '1');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
-  response.data.pipe(res);
+  // Direct redirect - fastest method (Cloudinary CDN handles delivery)
+  res.redirect(302, convertedUrl);
 };
 
 // Download ZIP (multiple files)
