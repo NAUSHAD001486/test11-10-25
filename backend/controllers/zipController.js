@@ -95,13 +95,33 @@ async function zipJobWorker(jobId) {
   try {
     const files = Array.isArray(job.files) ? job.files.slice() : [];
     
+    // Fixed: Improved same-name handling with unique index tracking
     const usedNames = new Map();
-    const safeName = (base, ext) => {
-      const candidate = `${base}${ext}`;
-      if (!usedNames.has(candidate)) { usedNames.set(candidate, 1); return candidate; }
-      let n = usedNames.get(candidate); let unique;
-      do { unique = `${base}_${n}${ext}`; n++; } while (usedNames.has(unique));
-      usedNames.set(candidate, n); usedNames.set(unique, 1); return unique;
+    const safeName = (base, ext, fileIndex) => {
+      // Clean base name (remove special characters that might cause issues)
+      const cleanBase = base.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100); // Limit length
+      const candidate = `${cleanBase}${ext}`;
+      
+      if (!usedNames.has(candidate)) { 
+        usedNames.set(candidate, { count: 1, index: fileIndex }); 
+        return candidate; 
+      }
+      
+      // File with same name exists - create unique name
+      const existing = usedNames.get(candidate);
+      let n = existing.count;
+      let unique;
+      
+      do { 
+        unique = `${cleanBase}_${n}${ext}`; 
+        n++; 
+      } while (usedNames.has(unique));
+      
+      // Track both the original and the new unique name
+      usedNames.set(candidate, { count: n, index: existing.index });
+      usedNames.set(unique, { count: 1, index: fileIndex });
+      
+      return unique;
     };
     
     const fileDescs = files.map((f, k) => {
@@ -114,7 +134,8 @@ async function zipJobWorker(jobId) {
           return b || `file_${idx}`;
         } catch { return `file_${idx}`; }
       })() : `file_${idx}`;
-      return { ...f, idx, origExt: ext, base, zipName: safeName(base, ext) };
+      // Fixed: Pass file index to safeName for better tracking
+      return { ...f, idx, origExt: ext, base, zipName: safeName(base, ext, idx) };
     });
     
     let fileCount = fileDescs.length;
@@ -127,7 +148,8 @@ async function zipJobWorker(jobId) {
       }
     }
     
-    // Optimized: Process all files in parallel with better error handling
+    // Fixed: Process all files in parallel with Promise.allSettled (no files missed)
+    // Use allSettled instead of all to ensure all files are processed even if some fail
     const fetchPromises = fileDescs.map(async (f) => {
       try {
         const fetchUrl = f.convertedUrl ? f.convertedUrl : await convertFile(f.publicId, f.format, f.format);
@@ -152,10 +174,11 @@ async function zipJobWorker(jobId) {
             const validateExt = (f.format && SPECIAL_FORMATS.includes(String(f.format).toUpperCase())) ? 'png' : ext;
             if (!isLikelyValidImage(buf, validateExt)) throw new Error('File buffer failed validation');
             
+            // Success: Add to got array
             got.push({ zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName });
             done++;
             updatePercent();
-            return true;
+            return { success: true, file: f, data: { zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName } };
           } catch (e) { 
             lastErr = e; 
             // Exponential backoff: 100ms, 200ms
@@ -163,24 +186,72 @@ async function zipJobWorker(jobId) {
           }
         }
         
-        // If all retries failed
-        throw new Error(`ZIP fetch failed: ${f.zipName} | ${lastErr && lastErr.message}`);
-      } catch (err) {
+        // If all retries failed, return failure (don't throw - use allSettled)
         done++;
         updatePercent();
-        throw err;
+        return { success: false, file: f, error: `ZIP fetch failed: ${f.zipName} | ${lastErr && lastErr.message}` };
+      } catch (err) {
+        // Catch any unexpected errors
+        done++;
+        updatePercent();
+        return { success: false, file: f, error: err.message || 'Unknown error' };
       }
     });
     
-    try {
-      await Promise.all(fetchPromises);
-      job.percent = 98;
-    } catch (err) {
+    // Fixed: Use Promise.allSettled to process ALL files, even if some fail
+    const results = await Promise.allSettled(fetchPromises);
+    
+    // Process results: separate successful and failed files
+    const failedFiles = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const fileResult = result.value;
+        if (fileResult.success) {
+          // File already added to got array in the promise
+          // Double-check: ensure it's in got array
+          const exists = got.find(g => g.index === fileResult.data.index && g.zipName === fileResult.data.zipName);
+          if (!exists) {
+            got.push(fileResult.data);
+          }
+        } else {
+          // Failed file - track for logging
+          failedFiles.push({
+            zipName: fileResult.file.zipName,
+            originalName: fileResult.file.originalName,
+            error: fileResult.error
+          });
+        }
+      } else {
+        // Promise rejected - this shouldn't happen but handle it
+        failedFiles.push({
+          zipName: fileDescs[index]?.zipName || 'unknown',
+          originalName: fileDescs[index]?.originalName || 'unknown',
+          error: result.reason?.message || 'Promise rejected'
+        });
+      }
+    });
+    
+    // Log failed files for debugging
+    if (failedFiles.length > 0) {
+      const logger = require('../logger');
+      logger.warn(`ZIP job ${jobId}: ${failedFiles.length} files failed to fetch`, { failedFiles });
+    }
+    
+    // Check if we have any successful files
+    if (got.length === 0) {
       job.status = 'error';
-      job.error = 'File fetch failed: ' + (err && err.message ? err.message : 'Unknown');
+      job.error = 'All files failed to fetch. Please try again.';
       job.ready = false;
       return;
     }
+    
+    // If some files failed but we have successful ones, continue with partial success
+    if (failedFiles.length > 0) {
+      job.partialSuccess = true;
+      job.failedFiles = failedFiles;
+    }
+    
+    job.percent = 98;
     
     job.status = 'zipping';
     job.percent = 99;
