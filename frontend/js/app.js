@@ -1744,8 +1744,45 @@ async function downloadFiles(results) {
             return; // Exit early - download handled by server via iframe
         }
         
-        // Desktop: Use blob URL method (original implementation)
-        // Send download request to backend immediately
+        // Desktop: Optimized for single file - direct form submit (fastest)
+        if (results.length === 1) {
+            // Optimized: For single file, use direct form submit for instant download
+            // Backend redirects to Cloudinary CDN - much faster than blob processing
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = getApiBaseUrl() + '/api/download';
+            form.style.display = 'none';
+            
+            // Add files data
+            const filesInput = document.createElement('input');
+            filesInput.type = 'hidden';
+            filesInput.name = 'files';
+            filesInput.value = JSON.stringify(files);
+            form.appendChild(filesInput);
+            
+            document.body.appendChild(form);
+            
+            // Stop spinner immediately - download starts instantly
+            convertBtn.querySelector('.btn-loading').style.display = 'none';
+            convertBtn.querySelector('.btn-text').style.display = 'block';
+            convertBtn.disabled = false;
+            
+            // Submit form - browser handles download directly (faster than blob)
+            form.submit();
+            
+            // Clean up after delay
+            setTimeout(function() {
+                if (form.parentNode) {
+                    document.body.removeChild(form);
+                }
+            }, 1000);
+            
+            // Remove click animation
+            convertBtn.classList.remove('clicked');
+            return; // Exit early - download handled directly
+        }
+        
+        // Multiple files: Use blob method (ZIP needs processing)
         const response = await fetch(getApiBaseUrl() + '/api/download', {
             method: 'POST',
             headers: {
@@ -1766,28 +1803,13 @@ async function downloadFiles(results) {
             throw new Error('Downloaded file is empty');
         }
         
-        // Get filename from Content-Disposition header (set by backend)
-        // Single file: actual filename, Multiple files: ZIP filename
-        let filename = results.length === 1 ? 'converted.png' : 'converted_files.zip'; // Default fallback
+        // Get filename from Content-Disposition header
+        let filename = 'converted_files.zip';
         const contentDisposition = response.headers.get('content-disposition');
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
             if (filenameMatch) {
                 filename = filenameMatch[1];
-            }
-        }
-        
-        // For single file, ensure it's not ZIP
-        if (results.length === 1 && filename.endsWith('.zip')) {
-            // Use actual filename from results
-            const originalName = results[0].originalName;
-            const format = results[0].format;
-            if (originalName) {
-                const ext = originalName.substring(originalName.lastIndexOf('.'));
-                const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || 'converted';
-                filename = baseName + '.' + format.toLowerCase();
-            } else {
-                filename = 'converted.' + format.toLowerCase();
             }
         }
         
@@ -1807,17 +1829,15 @@ async function downloadFiles(results) {
         link.download = filename;
         link.style.display = 'none';
         
-        // No extra timers; browser shows native download progress
-        
         // Add to DOM, click, and remove immediately
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
         // Clean up the blob URL quickly
-        setTimeout(() => {
+        setTimeout(function() {
             URL.revokeObjectURL(blobUrl);
-        }, 40);
+        }, 100);
         
         // Mark as downloaded for future file clearing
         isDownloaded = true;
