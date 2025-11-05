@@ -1630,6 +1630,17 @@ function animateProgress(targetPercentage, text) {
 function showResults(results) {
     console.log('showResults called with', results.length, 'results');
     
+    // Hide progress bar immediately after conversion completes
+    // This prevents layout shift when download button is clicked
+    if (progressContainer && progressContainer.parentNode) {
+        progressContainer.style.display = 'none';
+        progressContainer.style.visibility = 'hidden';
+        // Remove margin to prevent layout shift
+        progressContainer.style.margin = '0';
+        progressContainer.style.height = '0';
+        progressContainer.style.padding = '0';
+    }
+    
     // Update convert button text based on number of files
     var btnText = convertBtn.querySelector('.btn-text');
     if (btnText) {
@@ -1683,11 +1694,15 @@ async function downloadFiles(results) {
             }
         }
         
-        // Hide progress bar during download (only show spinner on button)
-        // Make sure progress bar is completely hidden and doesn't reappear
-        if (progressContainer) {
-            progressContainer.style.display = 'none';
-            progressContainer.style.visibility = 'hidden';
+        // Remove progress bar from DOM during download (only show spinner on button)
+        // This prevents layout shift - button position stays stable
+        var progressContainerParent = null;
+        if (progressContainer && progressContainer.parentNode) {
+            progressContainerParent = progressContainer.parentNode;
+            // Store reference for restoration
+            progressContainer.dataset.removed = 'true';
+            // Remove from DOM to prevent layout shift
+            progressContainerParent.removeChild(progressContainer);
         }
         
         // Prepare files data for backend - ES5 compatible

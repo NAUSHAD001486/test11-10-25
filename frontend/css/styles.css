@@ -603,6 +603,16 @@ body {
 .progress-container {
     margin: 0 0 16px 0;
     text-align: center;
+    transition: margin 0.2s ease, height 0.2s ease, padding 0.2s ease;
+}
+
+/* When hidden, remove all spacing to prevent layout shift */
+.progress-container[style*="display: none"],
+.progress-container[style*="display:none"] {
+    margin: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
 }
 
 /* Removed progress-counter styling */
