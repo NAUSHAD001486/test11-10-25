@@ -1974,10 +1974,21 @@ async function downloadAllFiles(results) {
             });
         }
         // 1. POST to create ZIP job
-        // Show ONLY button spinner while preparing
+        // Show ONLY button spinner while preparing with "Downloading..." text
         convertBtn.disabled = true;
         convertBtn.querySelector('.btn-text').style.display = 'none';
-        convertBtn.querySelector('.btn-loading').style.display = 'flex';
+        
+        // Show loading spinner with "Downloading..." text (not "Converting...")
+        const btnLoading = convertBtn.querySelector('.btn-loading');
+        if (btnLoading) {
+            btnLoading.style.display = 'flex';
+            // Update text to "Downloading..." instead of "Converting..."
+            const loadingText = btnLoading.querySelector('span');
+            if (loadingText) {
+                loadingText.textContent = 'Downloading...';
+            }
+        }
+        
         progressContainer.style.display = 'none';
 
         const resp = await fetch(getApiBaseUrl() + '/api/zip-job', {
