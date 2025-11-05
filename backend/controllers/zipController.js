@@ -127,25 +127,49 @@ async function zipJobWorker(jobId) {
       }
     }
     
+    // Optimized: Process all files in parallel with better error handling
     const fetchPromises = fileDescs.map(async (f) => {
-      const fetchUrl = f.convertedUrl ? f.convertedUrl : await convertFile(f.publicId, f.format, f.format);
-      let lastErr, resp;
-      for (let i = 0; i < 3; i++) {
-        try {
-          resp = await axiosKA({ method: 'GET', url: fetchUrl, responseType: 'arraybuffer', timeout: 20000, maxRedirects: 5, validateStatus: s => s >= 200 && s < 300 });
-          if (!resp.data || resp.data.length === 0) throw new Error('File buffer empty');
-          const buf = Buffer.from(resp.data);
-          const ext = (f.origExt || '.png').slice(1);
-          const validateExt = (f.format && SPECIAL_FORMATS.includes(String(f.format).toUpperCase())) ? 'png' : ext;
-          if (!isLikelyValidImage(buf, validateExt)) throw new Error('File buffer failed validation');
-          got.push({ zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName });
-          break;
-        } catch (e) { lastErr = e; if (i < 2) await new Promise(r => setTimeout(r, 200)); }
+      try {
+        const fetchUrl = f.convertedUrl ? f.convertedUrl : await convertFile(f.publicId, f.format, f.format);
+        let lastErr, resp;
+        
+        // Optimized retry with exponential backoff (3 attempts, faster retries)
+        for (let i = 0; i < 3; i++) {
+          try {
+            // Reduced timeout from 20s to 15s for faster failure detection
+            resp = await axiosKA({ 
+              method: 'GET', 
+              url: fetchUrl, 
+              responseType: 'arraybuffer', 
+              timeout: 15000, // Reduced from 20000
+              maxRedirects: 5, 
+              validateStatus: s => s >= 200 && s < 300 
+            });
+            
+            if (!resp.data || resp.data.length === 0) throw new Error('File buffer empty');
+            const buf = Buffer.from(resp.data);
+            const ext = (f.origExt || '.png').slice(1);
+            const validateExt = (f.format && SPECIAL_FORMATS.includes(String(f.format).toUpperCase())) ? 'png' : ext;
+            if (!isLikelyValidImage(buf, validateExt)) throw new Error('File buffer failed validation');
+            
+            got.push({ zipName: f.zipName, index: f.idx, buffer: buf, size: buf.length, originalName: f.originalName });
+            done++;
+            updatePercent();
+            return true;
+          } catch (e) { 
+            lastErr = e; 
+            // Exponential backoff: 100ms, 200ms
+            if (i < 2) await new Promise(r => setTimeout(r, 100 * (i + 1))); 
+          }
+        }
+        
+        // If all retries failed
+        throw new Error(`ZIP fetch failed: ${f.zipName} | ${lastErr && lastErr.message}`);
+      } catch (err) {
+        done++;
+        updatePercent();
+        throw err;
       }
-      done++;
-      updatePercent();
-      if (!resp || !resp.data) throw new Error(`ZIP fetch failed: ${f.zipName} | ${lastErr && lastErr.message}`);
-      return true;
     });
     
     try {
@@ -160,7 +184,8 @@ async function zipJobWorker(jobId) {
     
     job.status = 'zipping';
     job.percent = 99;
-    const archive = archiver('zip', { zlib: { level: 1 } });
+    // Optimized: Level 1 compression for fastest ZIP creation (already optimal)
+    const archive = archiver('zip', { zlib: { level: 1 }, store: false });
     const chunks = [];
     archive.on('data', chunk => chunks.push(chunk));
     let zipComplete = false, zipErr = null;

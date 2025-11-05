@@ -28,7 +28,8 @@ const convertFiles = async (req, res) => {
 
     const convertedFiles = [];
     const errors = [];
-    const batchSize = 8;
+    // Increased batch size for faster parallel processing (8 → 16)
+    const batchSize = 16;
     
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);

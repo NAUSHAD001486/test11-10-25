@@ -12,7 +12,8 @@ const uploadFromDevice = async (req, res) => {
 
     const results = [];
     const errors = [];
-    const batchSize = 8;
+    // Increased batch size for faster parallel processing (8 → 16)
+    const batchSize = 16;
     
     for (let i = 0; i < req.files.length; i += batchSize) {
       const batch = req.files.slice(i, i + batchSize);

@@ -25,7 +25,7 @@ const uploadToCloudinary = async (filePath, publicId) => {
       resource_type: 'auto',
       folder: 'love-u-convert',
       timeout: 60000,
-      chunk_size: 10000000, // 10MB chunks
+      chunk_size: 20000000, // Optimized: Increased from 10MB to 20MB chunks for faster uploads
       tags: ['auto-delete-2h'],
       use_filename: false,
       unique_filename: false

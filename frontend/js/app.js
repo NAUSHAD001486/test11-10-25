@@ -1418,85 +1418,75 @@ async function convertFiles(startTime) {
     const results = [];
     const totalFiles = uploadedFiles.length;
     
-    for (let i = 0; i < uploadedFiles.length; i++) {
-        const fileObj = uploadedFiles[i];
+    // Optimized: Process files in parallel batches for faster conversion
+    const batchSize = 8; // Process 8 files at once
+    let processedCount = 0;
+    
+    // Start smooth progress animation
+    let globalProgress = 0;
+    let isProcessingComplete = false;
+    const progressInterval = setInterval(() => {
+        if (!isProcessingComplete && globalProgress < 95) {
+            // Faster progress updates for better UX
+            globalProgress += Math.random() * 2 + 1;
+            if (globalProgress > 95) globalProgress = 95;
+            updateProgress(globalProgress, `Processing ${processedCount}/${totalFiles} files...`);
+        }
+    }, 100);
+    
+    // Process files in parallel batches
+    for (let i = 0; i < uploadedFiles.length; i += batchSize) {
+        const batch = uploadedFiles.slice(i, i + batchSize);
         
-        // Start with 0% progress for this file
-        let fileProgress = 0;
-        const fileStartTime = Date.now();
-        
-        // Show initial progress
-        updateProgress(fileProgress, `Finalizing ${Math.round(fileProgress)}...`);
-        
-        try {
-            let result;
-            
-        // Start continuous progress animation
-        let currentProgress = 0;
-        let isProcessingComplete = false;
-        const progressInterval = setInterval(() => {
-            // Smoother increments, especially in 90s range
-            let increment;
-            if (currentProgress < 80) {
-                increment = Math.random() * 2 + 1; // 1-3 points
-            } else if (currentProgress < 90) {
-                increment = Math.random() * 1.5 + 0.5; // 0.5-2 points
-            } else if (currentProgress < 95) {
-                increment = Math.random() * 0.8 + 0.2; // 0.2-1 points (smoother in 90s)
-            } else {
-                // 95-99 range: very small increments
-                increment = Math.random() * 0.3 + 0.1; // 0.1-0.4 points
-            }
-            
-            currentProgress += increment;
-            
-            // If processing is complete, go to 100, otherwise cap at 99
-            if (isProcessingComplete) {
-                if (currentProgress >= 100) {
-                    currentProgress = 100;
-                    clearInterval(progressInterval);
+        // Process batch in parallel
+        const batchPromises = batch.map(async (fileObj) => {
+            try {
+                let result;
+                
+                // Upload phase
+                if (fileObj.file) {
+                    result = await uploadFile(fileObj.file);
+                } else {
+                    // File already uploaded from URL
+                    result = {
+                        publicId: fileObj.publicId,
+                        originalName: fileObj.name
+                    };
                 }
-            } else {
-                if (currentProgress > 99) currentProgress = 99;
+                
+                // Convert phase - optimized Cloudinary URL generation
+                const convertedUrl = await convertFile(result.publicId, selectedFormat);
+                
+                processedCount++;
+                updateProgress(Math.min(95, (processedCount / totalFiles) * 95), `Processing ${processedCount}/${totalFiles} files...`);
+                
+                return {
+                    originalName: result.originalName,
+                    convertedUrl: convertedUrl,
+                    format: selectedFormat,
+                    publicId: result.publicId
+                };
+            } catch (error) {
+                console.error('Error converting file:', error);
+                processedCount++;
+                return null; // Return null for failed files
             }
-            
-            updateProgress(currentProgress, `Finalizing ${Math.round(currentProgress)}...`);
-        }, 80); // Update every 80ms for smoother flow
+        });
         
-        // Upload phase (0-40%)
-        if (fileObj.file) {
-            result = await uploadFile(fileObj.file);
-        } else {
-            // File already uploaded from URL
-            result = {
-                publicId: fileObj.publicId,
-                originalName: fileObj.name
-            };
-        }
+        // Wait for batch to complete
+        const batchResults = await Promise.all(batchPromises);
         
-        // Convert phase (40-95%)
-        const convertedUrl = await convertFile(result.publicId, selectedFormat);
-        
-        // Mark processing as complete to allow progress to reach 100
-        isProcessingComplete = true;
-            
-            results.push({
-                originalName: result.originalName,
-                convertedUrl: convertedUrl,
-                format: selectedFormat,
-                publicId: result.publicId
-            });
-            
-            // Wait for progress to reach 100 naturally
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-        } catch (error) {
-            console.error('Error converting file:', error);
-            // Continue with other files
-        }
+        // Add successful results
+        batchResults.forEach(result => {
+            if (result) {
+                results.push(result);
+            }
+        });
     }
     
-    // Final completion
+    // Mark processing complete
+    isProcessingComplete = true;
+    clearInterval(progressInterval);
     updateProgress(100, 'Done!');
     
     return results;
