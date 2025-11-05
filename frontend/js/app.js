@@ -1668,11 +1668,22 @@ async function downloadFiles(results) {
         // Add click animation class
         convertBtn.classList.add('clicked');
         
-        // Disable button during preparation and show loading spinner
+        // Disable button during download and show loading spinner with "Downloading..." text
         convertBtn.disabled = true;
         convertBtn.querySelector('.btn-text').style.display = 'none';
-        convertBtn.querySelector('.btn-loading').style.display = 'flex';
-        // Hide progress bar during download
+        
+        // Show loading spinner with "Downloading..." text (not "Converting...")
+        const btnLoading = convertBtn.querySelector('.btn-loading');
+        if (btnLoading) {
+            btnLoading.style.display = 'flex';
+            // Update text to "Downloading..." instead of "Converting..."
+            const loadingText = btnLoading.querySelector('span');
+            if (loadingText) {
+                loadingText.textContent = 'Downloading...';
+            }
+        }
+        
+        // Hide progress bar during download (only show spinner on button)
         progressContainer.style.display = 'none';
         
         // Prepare files data for backend - ES5 compatible
@@ -1762,8 +1773,16 @@ async function downloadFiles(results) {
             
             document.body.appendChild(form);
             
-            // Stop spinner immediately - download starts instantly
-            convertBtn.querySelector('.btn-loading').style.display = 'none';
+            // Stop spinner and restore button text after download starts
+            const btnLoading = convertBtn.querySelector('.btn-loading');
+            if (btnLoading) {
+                btnLoading.style.display = 'none';
+                // Restore "Converting..." text for future use
+                const loadingText = btnLoading.querySelector('span');
+                if (loadingText) {
+                    loadingText.textContent = 'Converting...';
+                }
+            }
             convertBtn.querySelector('.btn-text').style.display = 'block';
             convertBtn.disabled = false;
             
