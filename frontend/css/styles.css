@@ -521,6 +521,11 @@ body {
     box-shadow: var(--shadow-md);
     position: relative;
     overflow: hidden;
+    /* Fixed height to prevent position shift */
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .convert-btn:hover:not(:disabled) {
@@ -548,13 +553,28 @@ body {
     background: #111827;
 }
 
-/* Download button click animation - scale only */
+/* Download button click animation - scale only, no position shift */
 .convert-btn {
     transition: transform 200ms ease;
 }
 
 .convert-btn.clicked {
     transform: scale(0.95);
+    /* Ensure position doesn't shift during scale */
+    transform-origin: center center;
+}
+
+.btn-text,
+.btn-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .btn-loading {
