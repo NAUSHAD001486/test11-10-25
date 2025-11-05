@@ -1684,7 +1684,11 @@ async function downloadFiles(results) {
         }
         
         // Hide progress bar during download (only show spinner on button)
-        progressContainer.style.display = 'none';
+        // Make sure progress bar is completely hidden and doesn't reappear
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+            progressContainer.style.visibility = 'hidden';
+        }
         
         // Prepare files data for backend - ES5 compatible
         var files = [];
