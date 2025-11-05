@@ -163,6 +163,32 @@ cloudinary.config({
 });
 
 // Routes
+// Root route - Informative message for direct backend access
+app.get('/', (req, res) => {
+  const protocol = req.protocol || 'http';
+  const host = req.get('host') || `localhost:${PORT}`;
+  const frontendPort = '3001';
+  const frontendUrl = `${protocol}://${host.split(':')[0]}:${frontendPort}`;
+  
+  res.json({
+    message: 'Backend API Server',
+    status: 'Running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      usage: '/api/usage',
+      upload: '/api/upload/device',
+      convert: '/api/convert',
+      download: '/api/download'
+    },
+    frontend: {
+      url: frontendUrl,
+      message: 'Access the frontend at the URL above'
+    }
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
