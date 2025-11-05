@@ -40,7 +40,7 @@ const uploadToCloudinary = async (filePath, publicId) => {
           resource_type: 'auto',
           folder: 'love-u-convert',
           timeout: 60000,
-          chunk_size: 10000000
+          chunk_size: 20000000 // Optimized: Increased from 10MB to 20MB chunks
         });
       } catch (retryError) {
         throw new Error('Upload failed: Rate limit exceeded. Please try again later.');
