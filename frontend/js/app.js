@@ -1654,8 +1654,13 @@ function showResults(results) {
     convertBtn.classList.add('download');
     }
     // ES5 compatible onclick handler
+    // Single file: direct download, Multiple files: ZIP download
     convertBtn.onclick = function() {
-        downloadAllFiles(results);
+        if (results.length === 1) {
+            downloadFiles(results);
+        } else {
+            downloadAllFiles(results);
+        }
     };
 }
 
@@ -1772,12 +1777,27 @@ async function downloadFiles(results) {
         }
         
         // Get filename from Content-Disposition header (set by backend)
-        let filename = 'converted_files.zip'; // Default fallback
+        // Single file: actual filename, Multiple files: ZIP filename
+        let filename = results.length === 1 ? 'converted.png' : 'converted_files.zip'; // Default fallback
         const contentDisposition = response.headers.get('content-disposition');
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
             if (filenameMatch) {
                 filename = filenameMatch[1];
+            }
+        }
+        
+        // For single file, ensure it's not ZIP
+        if (results.length === 1 && filename.endsWith('.zip')) {
+            // Use actual filename from results
+            const originalName = results[0].originalName;
+            const format = results[0].format;
+            if (originalName) {
+                const ext = originalName.substring(originalName.lastIndexOf('.'));
+                const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || 'converted';
+                filename = baseName + '.' + format.toLowerCase();
+            } else {
+                filename = 'converted.' + format.toLowerCase();
             }
         }
         
@@ -2115,7 +2135,14 @@ function formatFileSize(bytes) {
 // Error handling - Cross-browser compatible
 if (window.addEventListener) {
 window.addEventListener('error', function(e) {
-        console.error('Global error:', e.error || e.message || 'Unknown error');
+        // Log error details for debugging
+        if (e.error) {
+            console.error('Global error:', e.error);
+        } else if (e.message) {
+            console.error('Global error:', e.message);
+        } else if (e.target && e.target.error) {
+            console.error('Resource error:', e.target.error);
+        }
         // Prevent error from breaking the page
         e.preventDefault = e.preventDefault || function() {};
         return true; // Prevent default error handling

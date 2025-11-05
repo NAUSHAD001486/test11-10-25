@@ -259,9 +259,8 @@ cron.schedule('0 0 * * *', () => {
 });
 
 // Error handling middleware
-const logger = require('./logger');
-
 app.use((error, req, res, next) => {
+  const logger = require('./logger');
   logger.error('Error:', { error: error.message, stack: error.stack, url: req.url, method: req.method });
   
   if (error.code === 'LIMIT_FILE_SIZE') {
@@ -280,9 +279,8 @@ app.use((req, res) => {
 });
 
 // Start server
-const logger = require('./logger');
-
 app.listen(PORT, '0.0.0.0', () => {
+  const logger = require('./logger');
   logger.info(`✅ Server running on port ${PORT}`, {
     environment: process.env.NODE_ENV || 'development',
     port: PORT,

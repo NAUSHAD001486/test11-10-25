@@ -178,7 +178,8 @@ const downloadFiles = async (req, res) => {
       await downloadZip(req, res, files);
     }
   } catch (error) {
-    console.error('Download error:', error);
+    const logger = require('../logger');
+    logger.error('Download error:', { error: error.message, stack: error.stack });
     if (!res.headersSent) {
       res.status(500).json({ error: error.message || 'Download failed' });
     }
