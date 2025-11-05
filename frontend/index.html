@@ -648,17 +648,39 @@
     <!-- API Base URL Configuration -->
     <script>
         // API Base URL - Set based on environment
-        // For local development: http://localhost:3000
+        // For local development: http://localhost:3000 or http://IP:3000
         // For production: Set via Vercel environment variable NEXT_PUBLIC_API_URL
         window.API_BASE_URL = (function() {
-            // Check if running on Vercel (production)
-            if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                // Production: Use environment variable or default to relative path
-                // In Vercel, set NEXT_PUBLIC_API_URL environment variable
-                return window.API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'https://your-aws-backend.com';
+            if (typeof window === 'undefined' || !window.location) {
+                return 'http://localhost:3000';
             }
-            // Development: Use local backend
-            return 'http://localhost:3000';
+            
+            var hostname = window.location.hostname;
+            var protocol = window.location.protocol;
+            
+            // Check if running on localhost
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            
+            // Check if running on local network IP (10.x.x.x, 192.168.x.x, 172.x.x.x)
+            var isLocalNetwork = false;
+            if (hostname.match(/^10\.\d+\.\d+\.\d+$/)) {
+                isLocalNetwork = true;
+            } else if (hostname.match(/^192\.168\.\d+\.\d+$/)) {
+                isLocalNetwork = true;
+            } else if (hostname.match(/^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/)) {
+                isLocalNetwork = true;
+            }
+            
+            if (isLocalNetwork) {
+                // Local network IP: Use same IP with backend port (3000)
+                return protocol + '//' + hostname + ':3000';
+            }
+            
+            // Production: Use environment variable or default
+            // In Vercel, set NEXT_PUBLIC_API_URL environment variable
+            return window.API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'https://your-aws-backend.com';
         })();
         // API Base URL configured
     </script>
