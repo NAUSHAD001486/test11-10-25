@@ -2003,7 +2003,15 @@ async function downloadAllFiles(results) {
         if (!resp.ok) {
             // Special: Cloudinary/usage/daily limit error detection
             if ((outJson.error && outJson.error.includes('limit')) || (outJson.message && outJson.message.toLowerCase().includes('daily'))) {
-                convertBtn.querySelector('.btn-loading').style.display = 'none';
+                const btnLoading = convertBtn.querySelector('.btn-loading');
+                if (btnLoading) {
+                    btnLoading.style.display = 'none';
+                    // Restore "Converting..." text for future use
+                    const loadingText = btnLoading.querySelector('span');
+                    if (loadingText) {
+                        loadingText.textContent = 'Converting...';
+                    }
+                }
                 convertBtn.querySelector('.btn-text').style.display = 'block';
                 convertBtn.disabled = false;
                 showError(outJson.message || 'Daily limit reached (2GB). Please try again tomorrow.');
@@ -2035,7 +2043,15 @@ async function downloadAllFiles(results) {
             }
             if (stat.error) {
                 if (stat.error.includes('limit') || (stat.message && stat.message.toLowerCase().includes('daily'))) {
-                    convertBtn.querySelector('.btn-loading').style.display = 'none';
+                    const btnLoading = convertBtn.querySelector('.btn-loading');
+                    if (btnLoading) {
+                        btnLoading.style.display = 'none';
+                        // Restore "Converting..." text for future use
+                        const loadingText = btnLoading.querySelector('span');
+                        if (loadingText) {
+                            loadingText.textContent = 'Converting...';
+                        }
+                    }
                     convertBtn.querySelector('.btn-text').style.display = 'block';
                     convertBtn.disabled = false;
                     showError(stat.message || 'Daily limit reached (2GB). Please try again tomorrow.');
@@ -2071,8 +2087,16 @@ async function downloadAllFiles(results) {
         await pollZip();
     } catch (error) {
         progressContainer.style.display = 'none';
-        // Stop spinner and re-enable on error
-        convertBtn.querySelector('.btn-loading').style.display = 'none';
+        // Stop spinner and re-enable on error - restore "Converting..." text
+        const btnLoading = convertBtn.querySelector('.btn-loading');
+        if (btnLoading) {
+            btnLoading.style.display = 'none';
+            // Restore "Converting..." text for future use
+            const loadingText = btnLoading.querySelector('span');
+            if (loadingText) {
+                loadingText.textContent = 'Converting...';
+            }
+        }
         convertBtn.querySelector('.btn-text').style.display = 'block';
         convertBtn.disabled = false;
         if (error && error.message && error.message.toLowerCase().includes('limit')) {
