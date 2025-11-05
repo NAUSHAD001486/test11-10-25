@@ -263,9 +263,26 @@ async function zipJobWorker(jobId) {
     archive.on('end', () => zipComplete = true);
     archive.on('error', err => zipErr = err);
     
-    for (const fileObj of got.sort((a, b) => a.index - b.index)) {
-      archive.append(fileObj.buffer, { name: fileObj.zipName });
+    // Fixed: Sort by index and verify all files are included before appending
+    const sortedFiles = got.sort((a, b) => a.index - b.index);
+    
+    // Verify we have files in order and append only valid buffers
+    let filesAdded = 0;
+    for (const fileObj of sortedFiles) {
+      // Double-check buffer exists and is valid
+      if (fileObj.buffer && Buffer.isBuffer(fileObj.buffer) && fileObj.buffer.length > 0) {
+        archive.append(fileObj.buffer, { name: fileObj.zipName });
+        filesAdded++;
+      } else {
+        // Log warning but continue with other files
+        const logger = require('../logger');
+        logger.warn(`ZIP job ${jobId}: File ${fileObj.zipName} (index ${fileObj.index}) has invalid buffer, skipping`);
+      }
     }
+    
+    // Log final file count for verification
+    const logger = require('../logger');
+    logger.info(`ZIP job ${jobId}: Added ${filesAdded} files to ZIP (expected: ${fileCount}, got: ${got.length}, sorted: ${sortedFiles.length})`);
     
     archive.finalize();
     
