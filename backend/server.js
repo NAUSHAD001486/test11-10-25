@@ -147,25 +147,31 @@ app.use(cors({
     // In development mode: Allow all local network origins
     const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.NODE_ENV !== 'production';
     
+    // Debug logging
+    console.log('CORS check:', { origin, isDev, NODE_ENV: process.env.NODE_ENV });
+    
     // Allow requests with no origin in development (mobile apps, curl, etc.)
     if (!origin && isDev) {
+      console.log('CORS: Allowing request with no origin (development mode)');
       return callback(null, true);
     }
     
     if (isDev) {
       // Check exact match in allowedOrigins
       if (origin && allowedOrigins.indexOf(origin) !== -1) {
+        console.log('CORS: Allowing exact match:', origin);
         return callback(null, true);
       }
       
       // Check if origin is from local network (dynamic IP detection)
       if (origin && isLocalNetworkOrigin(origin)) {
-        // Allow all local network IPs on any port for development
+        console.log('CORS: Allowing local network origin:', origin);
         return callback(null, true);
       }
       
       // In development, be permissive - allow all local origins
       if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || isLocalNetworkOrigin(origin))) {
+        console.log('CORS: Allowing local origin:', origin);
         return callback(null, true);
       }
     }
@@ -178,7 +184,7 @@ app.use(cors({
     }
     
     // Default: Deny
-    console.log('CORS blocked origin:', origin, 'NODE_ENV:', process.env.NODE_ENV);
+    console.log('CORS blocked origin:', origin, 'NODE_ENV:', process.env.NODE_ENV, 'isDev:', isDev);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
